@@ -1,0 +1,26 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Secrets
+key.json
+*.pem
+*.key
+
+# Environment
+.env
+.env.*
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Cloud Shell / Gemini
+.gemini/
+.codeoss/
+.cache/
+.npm/
+.terraform.d/

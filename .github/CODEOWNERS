@@ -1,0 +1,15 @@
+# CODEOWNERS
+# Defines code ownership for automatic review requests on pull requests.
+# More specific rules override broader ones (last match wins in GitHub).
+
+# Global: both team members own everything by default
+* @sergiovillamizar @DidierParody
+
+# Infrastructure: both required (Terraform changes affect production)
+/infra/ @sergiovillamizar @DidierParody
+
+# Backend: Didier owns FastAPI / DWH / data engineering code
+/backend/ @DidierParody
+
+# Frontend: Sergio owns Next.js / GCS / CDN configuration
+/frontend/ @sergiovillamizar

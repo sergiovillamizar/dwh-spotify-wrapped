@@ -1,0 +1,128 @@
+/**
+ * variables.tf
+ * All input variables with default values for dwh-spotify-wrapped.
+ *
+ * Project:  dwh-spotify-wrapped
+ * Author:   Sergio / Didier
+ * Updated:  2026-05-14
+ */
+
+variable "project_id" {
+  description = "GCP project ID"
+  type        = string
+  default     = "dwh-spotify-wrapped"
+}
+
+variable "region" {
+  description = "GCP region for all regional resources"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "zone" {
+  description = "GCP zone for zonal resources (Cloud SQL)"
+  type        = string
+  default     = "us-central1-a"
+}
+
+variable "environment" {
+  description = "Deployment environment (dev / staging / prod)"
+  type        = string
+  default     = "prod"
+}
+
+variable "db_instance_name" {
+  description = "Cloud SQL instance name"
+  type        = string
+  default     = "spotify-postgres"
+}
+
+variable "db_version" {
+  description = "Cloud SQL PostgreSQL version"
+  type        = string
+  default     = "POSTGRES_16"
+}
+
+variable "db_tier" {
+  description = "Cloud SQL machine tier"
+  type        = string
+  default     = "db-custom-1-3840"
+}
+
+variable "db_disk_size_gb" {
+  description = "Cloud SQL disk size in GB"
+  type        = number
+  default     = 10
+}
+
+variable "vpc_name" {
+  description = "Name of the VPC network"
+  type        = string
+  default     = "spotify-wrapped-vpc"
+}
+
+variable "subnet_private_db_name" {
+  description = "Name of the private DB subnet"
+  type        = string
+  default     = "private-db"
+}
+
+variable "subnet_private_db_cidr" {
+  description = "CIDR for the private DB subnet"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "subnet_serverless_name" {
+  description = "Name of the serverless connector subnet"
+  type        = string
+  default     = "serverless-conn"
+}
+
+variable "subnet_serverless_cidr" {
+  description = "CIDR for the serverless connector subnet"
+  type        = string
+  default     = "10.8.0.0/28"
+}
+
+variable "vpc_connector_name" {
+  description = "Name of the Serverless VPC Connector"
+  type        = string
+  default     = "spotify-vpc-connector"
+}
+
+variable "static_bucket_name" {
+  description = "GCS bucket for Next.js static assets"
+  type        = string
+  default     = "spotify-wrapped-static"
+}
+
+variable "lb_domain" {
+  description = "Domain for the managed SSL certificate (update when real domain is available)"
+  type        = string
+  default     = "spotify-wrapped.app"
+}
+
+variable "cloud_run_backend_name" {
+  description = "Cloud Run service name for the FastAPI backend"
+  type        = string
+  default     = "spotify-backend"
+}
+
+variable "cloud_run_frontend_name" {
+  description = "Cloud Run service name for the Next.js frontend"
+  type        = string
+  default     = "spotify-frontend"
+}
+
+variable "cloud_run_backend_image" {
+  description = "Container image for the FastAPI backend (managed by Cloud Build)"
+  type        = string
+  default     = "gcr.io/dwh-spotify-wrapped/spotify-backend:latest"
+}
+
+variable "cloud_run_frontend_image" {
+  description = "Container image for the Next.js frontend (managed by Cloud Build)"
+  type        = string
+  default     = "gcr.io/dwh-spotify-wrapped/spotify-frontend:latest"
+}

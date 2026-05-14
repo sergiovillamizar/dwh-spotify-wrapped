@@ -1,48 +1,26 @@
-# Claude Code internals
-.claude/
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-.venv/
-venv/
-env/
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Node / Next.js
-node_modules/
-.next/
-out/
-.turbo/
-*.tsbuildinfo
-
-# Jupyter
-.ipynb_checkpoints/
-
-# OS
-.DS_Store
-Thumbs.db
-
 # Terraform
-**/.terraform/
+**/.terraform/*
 *.tfstate
-*.tfstate.backup
-*.tfvars
-!*.tfvars.example
+*.tfstate.*
 .terraform.lock.hcl
 
-# IDE
+# Secrets
+key.json
+*.pem
+*.key
+
+# Environment
+.env
+.env.*
+
+# OS / IDE
+.DS_Store
 .vscode/
 .idea/
-*.swp
+
+# Cloud Shell / Gemini
+.gemini/
+.codeoss/
+.cache/
+.npm/
+.terraform.d/

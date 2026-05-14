@@ -21,22 +21,18 @@ substitutions:
   _BACKEND_SA: sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
 
 steps:
-  # ── Step 1: Ensure Artifact Registry repo exists ─────────────────────────
+  # ── Step 1: Verify Artifact Registry repo is accessible ──────────────────
+  # Repo 'spotify-wrapped' is managed as infrastructure (created via gcloud/Terraform).
+  # This step validates connectivity and fails fast if the repo is missing.
   - id: ensure-artifact-registry
     name: gcr.io/cloud-builders/gcloud
-    entrypoint: bash
     args:
-      - -c
-      - |
-        gcloud artifacts repositories describe ${_AR_REPO} \
-          --project=$PROJECT_ID \
-          --location=${_REGION} \
-          --format="value(name)" 2>/dev/null \
-        || gcloud artifacts repositories create ${_AR_REPO} \
-          --project=$PROJECT_ID \
-          --location=${_REGION} \
-          --repository-format=docker \
-          --description="Docker images for Spotify Wrapped services"
+      - artifacts
+      - repositories
+      - describe
+      - ${_AR_REPO}
+      - --project=$PROJECT_ID
+      - --location=${_REGION}
     waitFor: ['-']
 
   # ── Step 2: Configure Docker auth for Artifact Registry ──────────────────

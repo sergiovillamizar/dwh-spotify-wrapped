@@ -88,6 +88,8 @@ resource "google_storage_bucket_iam_member" "frontend_bucket_reader" {
 
 # ---------------------------------------------------------------------------
 # Service Account — Cloud Build CI/CD
+# Recurso existente — creado manualmente vía gcloud 2026-05-14
+# terraform import google_service_account.sa_cloudbuild projects/dwh-spotify-wrapped/serviceAccounts/sa-cloudbuild@dwh-spotify-wrapped.iam.gserviceaccount.com
 # ---------------------------------------------------------------------------
 resource "google_service_account" "sa_cloudbuild" {
   account_id   = "sa-cloudbuild"

@@ -46,3 +46,13 @@ output "cloud_run_frontend_url" {
   description = "URL of the Cloud Run frontend service"
   value       = google_cloud_run_v2_service.frontend.uri
 }
+
+output "scheduler_sa_email" {
+  description = "Email of the Cloud Scheduler service account (used for OIDC verification in FastAPI)"
+  value       = google_service_account.sa_scheduler.email
+}
+
+output "etl_scheduler_job_name" {
+  description = "Fully qualified name of the nightly ETL Cloud Scheduler job"
+  value       = google_cloud_scheduler_job.etl_nightly.name
+}

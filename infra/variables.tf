@@ -128,3 +128,18 @@ variable "cloud_run_frontend_image" {
   # Placeholder until first frontend build; Cloud Build will update this image
   default     = "us-docker.pkg.dev/cloudrun/container/hello:latest"
 }
+
+# ---------------------------------------------------------------------------
+# Cloud Scheduler — nightly ETL
+# ---------------------------------------------------------------------------
+variable "scheduler_cron" {
+  description = "Cron expression for the nightly ETL job (Cloud Scheduler syntax)"
+  type        = string
+  default     = "0 2 * * *" # 02:00 in scheduler_timezone
+}
+
+variable "scheduler_timezone" {
+  description = "IANA timezone for the nightly ETL scheduler job"
+  type        = string
+  default     = "America/Bogota" # COT = UTC-5, no DST
+}

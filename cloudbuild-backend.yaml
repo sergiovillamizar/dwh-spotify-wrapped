@@ -9,11 +9,11 @@ timeout: '1200s'
 substitutions:
   _REGION: us-central1
   _AR_REPO: spotify-wrapped
-  # _SERVICE matches Terraform var.cloud_run_backend_name (spotify-backend)
   _SERVICE: spotify-backend
-  # _IMAGE_NAME is the AR image name (separate from Cloud Run service name)
   _IMAGE_NAME: backend
   _VPC_CONNECTOR: spotify-vpc-connector
+  _LB_DOMAIN: 34-54-8-28.nip.io
+  _SPOTIFY_CLIENT_ID: f8258104cb4c451a88b4cd90cfe724f2
 
 steps:
   # ── Step 1: Verify Artifact Registry repo is accessible ──────────────────
@@ -79,7 +79,9 @@ steps:
       - --platform=managed
       - --vpc-connector=${_VPC_CONNECTOR}
       - --vpc-egress=private-ranges-only
-      - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest
+      - --set-cloudsql-instances=$PROJECT_ID:${_REGION}:spotify-postgres
+      - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,SECRET_KEY=jwt-secret:latest
+      - --set-env-vars=SPOTIFY_CLIENT_ID=${_SPOTIFY_CLIENT_ID},CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:spotify-postgres,SPOTIFY_REDIRECT_URI=https://${_LB_DOMAIN}/v1/auth/callback,FRONTEND_URL=https://${_LB_DOMAIN}
       # $PROJECT_ID expands correctly in step args (not in substitutions block)
       - --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
       # Ingress: only LB + internal traffic (matches Terraform config)

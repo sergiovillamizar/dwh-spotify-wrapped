@@ -32,7 +32,11 @@ async def get_top_tracks(
     tracks: list[DimTrack] = []
     for t in raw.get("items", []):
         existing = db.query(DimTrack).filter(DimTrack.spotify_id == t["id"]).first()
-        if not existing:
+        if existing:
+            # Enrich stub records that were created without popularity data
+            existing.popularity = t.get("popularity")
+            existing.album_name = t.get("album", {}).get("name") or existing.album_name
+        else:
             primary_artist: dict = t["artists"][0] if t.get("artists") else {}
             art_fk: int | None = None
             if primary_artist.get("id"):

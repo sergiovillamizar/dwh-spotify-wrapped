@@ -9,6 +9,8 @@ Author:   Didier
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.v1.api import api_router
+
 APP_VERSION = "0.1.1"
 
 app = FastAPI(
@@ -27,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(api_router, prefix="/v1")
 
 
 @app.get("/v1/health", tags=["health"])

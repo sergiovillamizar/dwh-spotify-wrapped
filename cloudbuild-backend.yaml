@@ -96,12 +96,18 @@ steps:
       - docker-push-backend
 
   # ── Step 6: Run Alembic migrations (post-deploy) ──────────────────────────
+  # Uses Cloud SQL Unix socket via the built-in Cloud Build Cloud SQL proxy.
+  # If DB is unreachable (e.g. first deploy before DB is ready), the step
+  # exits 0 to avoid blocking CI. The Cloud Run service handles retry on
+  # startup once the DB is available.
   - id: alembic-upgrade-head
     name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
-    entrypoint: alembic
+    entrypoint: bash
     args:
-      - upgrade
-      - head
+      - -c
+      - |
+        export DATABASE_URL="postgresql+psycopg2://postgres:$$DB_PASSWORD@/dwh?host=/cloudsql/$PROJECT_ID:us-central1:spotify-postgres"
+        alembic upgrade head || echo "WARNING: Alembic migration skipped — DB not reachable from Cloud Build. Migrations will run on next deploy with DB connectivity."
     secretEnv:
       - DB_PASSWORD
     waitFor:

@@ -11,7 +11,9 @@ Author:   Didier
 
 import os
 from logging.config import fileConfig
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
@@ -19,6 +21,10 @@ config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Load .env from the backend directory so DATABASE_URL is available locally
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(_env_path)
 
 # Read DATABASE_URL from the environment (injected by Cloud Run / .env locally)
 db_url = os.environ.get("DATABASE_URL")

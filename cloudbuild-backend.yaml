@@ -2,6 +2,7 @@
 # CI/CD pipeline for FastAPI backend — triggered on push to main with changes in backend/**
 # Builds multi-stage Docker image, pushes to Artifact Registry, deploys to Cloud Run,
 # and runs Alembic migrations as a post-deploy step.
+# Updated 2026-05-14: infra fully provisioned (VPC Connector, Secrets, Cloud Run, LB)
 
 timeout: '1200s'
 

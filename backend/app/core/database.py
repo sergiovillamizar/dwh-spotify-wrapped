@@ -17,16 +17,24 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
 
-_settings = get_settings()
+# Engine and SessionLocal are initialized lazily on first DB access so that
+# missing env vars do not crash the process at import time (startup probe safe).
+_engine = None
+_SessionLocal = None
 
-engine = create_engine(
-    _settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def _get_session_local():
+    global _engine, _SessionLocal
+    if _SessionLocal is None:
+        settings = get_settings()
+        _engine = create_engine(
+            settings.DATABASE_URL,
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+        )
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+    return _SessionLocal
 
 
 class Base(DeclarativeBase):
@@ -123,7 +131,7 @@ class ETLAudit(Base):
 
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+    db = _get_session_local()()
     try:
         yield db
     finally:

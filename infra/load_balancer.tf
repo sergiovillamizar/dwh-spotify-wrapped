@@ -30,7 +30,10 @@ data "google_compute_global_address" "lb_ip" {
 # Update var.lb_domain when the real domain is registered.
 # ---------------------------------------------------------------------------
 resource "google_compute_managed_ssl_certificate" "lb_cert" {
-  name    = "lb-managed-cert"
+  # Name derived from domain so create_before_destroy works on domain changes:
+  # changing var.lb_domain creates a new cert with a different name, then
+  # detaches the old one from the proxy and destroys it.
+  name    = "lb-managed-cert-${replace(var.lb_domain, ".", "-")}"
   project = var.project_id
 
   managed {

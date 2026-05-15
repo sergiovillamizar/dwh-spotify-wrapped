@@ -98,9 +98,9 @@ variable "static_bucket_name" {
 }
 
 variable "lb_domain" {
-  description = "Domain for the managed SSL certificate (update when real domain is available)"
+  description = "Domain for the managed SSL certificate. Using nip.io wildcard DNS for PoC (34-54-8-28.nip.io resolves automatically to 34.54.8.28). Replace with real domain when registered."
   type        = string
-  default     = "spotify-wrapped.app"
+  default     = "34-54-8-28.nip.io"
 }
 
 variable "cloud_run_backend_name" {

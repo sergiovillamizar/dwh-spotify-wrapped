@@ -67,6 +67,25 @@ steps:
     waitFor:
       - docker-build-backend
 
+  # ── Step 5a: Verify secrets are accessible before deploy ─────────────────
+  # Runs in parallel with Docker build. Fails fast with a clear message if any
+  # secret is missing or the Cloud Build SA lacks secretAccessor — preventing
+  # a cryptic "startup probe failed" error later in the deploy step.
+  - id: check-secrets
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        for s in spotify-client-secret db-password jwt-secret; do
+          gcloud secrets versions access latest --secret="$s" --project=$PROJECT_ID \
+            > /dev/null \
+            && echo "[ok] secret '$s' is accessible" \
+            || { echo "[FAIL] secret '$s' not accessible — check Secret Manager and SA iam binding"; exit 1; }
+        done
+    waitFor: ['-']
+
   # ── Step 5: Deploy to Cloud Run ───────────────────────────────────────────
   - id: cloudrun-deploy-backend
     name: gcr.io/cloud-builders/gcloud
@@ -91,9 +110,11 @@ steps:
       - --min-instances=0
       - --max-instances=3
       - --port=8000
+      - --startup-cpu-boost
       - --project=$PROJECT_ID
     waitFor:
       - docker-push-backend
+      - check-secrets
 
   # ── Step 6: Run Alembic migrations via Cloud Run Job ─────────────────────
   # Cloud Build workers are outside the VPC and cannot reach Cloud SQL private IP.

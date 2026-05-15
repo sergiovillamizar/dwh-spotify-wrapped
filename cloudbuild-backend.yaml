@@ -13,8 +13,7 @@ substitutions:
   _IMAGE_NAME: backend
   _VPC_CONNECTOR: spotify-vpc-connector
   _LB_DOMAIN: 34-54-8-28.nip.io
-  # Set _SPOTIFY_CLIENT_ID in the Cloud Build trigger configuration (GCP Console → Triggers → Variables)
-  _SPOTIFY_CLIENT_ID: ""
+  _SPOTIFY_CLIENT_ID: f8258104cb4c451a88b4cd90cfe724f2
 
 steps:
   # ── Step 1: Verify Artifact Registry repo is accessible ──────────────────

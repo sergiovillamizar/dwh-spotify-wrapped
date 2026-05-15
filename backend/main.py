@@ -30,3 +30,9 @@ app.add_middleware(
 def health_check():
     """Liveness probe for Cloud Run."""
     return {"status": "ok", "service": "backend", "version": "0.1.0"}
+
+
+@app.get("/v1/ready", tags=["health"])
+def readiness_check():
+    """Readiness probe — confirms app accepted traffic."""
+    return {"ready": True, "service": "backend"}

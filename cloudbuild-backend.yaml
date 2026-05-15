@@ -101,23 +101,39 @@ steps:
     waitFor:
       - docker-push-backend
 
-  # ── Step 6: Run Alembic migrations (post-deploy) ──────────────────────────
-  # Uses Cloud SQL Unix socket via the built-in Cloud Build Cloud SQL proxy.
-  # If DB is unreachable (e.g. first deploy before DB is ready), the step
-  # exits 0 to avoid blocking CI. The Cloud Run service handles retry on
-  # startup once the DB is available.
+  # ── Step 6: Run Alembic migrations via Cloud Run Job ─────────────────────
+  # Cloud Build workers are outside the VPC and cannot reach Cloud SQL private IP.
+  # Solution: deploy a Cloud Run Job (has VPC Connector + Cloud SQL proxy sidecar)
+  # that runs migrate.sh, then execute it and wait for completion.
+  # 'gcloud run jobs deploy' is idempotent — creates on first run, updates on subsequent.
   - id: alembic-upgrade-head
-    name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+    name: gcr.io/cloud-builders/gcloud
     entrypoint: bash
     args:
       - -c
       - |
-        export DATABASE_URL="postgresql+psycopg2://postgres:$$DB_PASSWORD@/dwh?host=/cloudsql/$PROJECT_ID:us-central1:spotify-postgres"
-        alembic upgrade head || echo "WARNING: Alembic migration skipped — DB not reachable from Cloud Build. Migrations will run on next deploy with DB connectivity."
-    secretEnv:
-      - DB_PASSWORD
+        set -e
+        IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA"
+
+        gcloud run jobs deploy backend-migrate \
+          --image="$$IMAGE" \
+          --region=${_REGION} \
+          --add-cloudsql-instances="$PROJECT_ID:${_REGION}:spotify-postgres" \
+          --vpc-connector=${_VPC_CONNECTOR} \
+          --vpc-egress=private-ranges-only \
+          --set-secrets=DB_PASSWORD=db-password:latest \
+          --set-env-vars="CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:spotify-postgres" \
+          --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com \
+          --command=bash \
+          --args=migrate.sh \
+          --project=$PROJECT_ID
+
+        gcloud run jobs execute backend-migrate \
+          --region=${_REGION} \
+          --wait \
+          --project=$PROJECT_ID
     waitFor:
-      - cloudrun-deploy-backend
+      - docker-push-backend
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA

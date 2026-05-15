@@ -43,6 +43,11 @@ async def get_top_artists(
             )
             db.add(existing)
             db.flush()
+        else:
+            # Enrich stub records that were created without popularity data
+            existing.popularity = a.get("popularity")
+            existing.followers_count = a.get("followers", {}).get("total")
+            existing.genres = a.get("genres") or existing.genres
         artists.append(existing)
     db.commit()
     return TopArtistsResponse(items=artists, total=len(artists))

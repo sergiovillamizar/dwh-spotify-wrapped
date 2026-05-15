@@ -6,14 +6,6 @@
 
 timeout: '1200s'
 
-availableSecrets:
-  secretManager:
-    # Only DB_PASSWORD is needed inside Cloud Build (alembic step).
-    # SPOTIFY_CLIENT_SECRET and JWT_SECRET are passed directly to Cloud Run
-    # via --set-secrets in the deploy step — they do NOT need secretEnv here.
-    - versionName: projects/$PROJECT_ID/secrets/db-password/versions/latest
-      env: DB_PASSWORD
-
 substitutions:
   _REGION: us-central1
   _AR_REPO: spotify-wrapped

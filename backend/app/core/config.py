@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_HOURS: int = 8
 
+    # Cloud Scheduler OIDC verification
+    # Email of sa-etl-scheduler; verified on every POST /v1/etl/run-batch request.
+    SCHEDULER_SA_EMAIL: str = "sa-etl-scheduler@dwh-spotify-wrapped.iam.gserviceaccount.com"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")

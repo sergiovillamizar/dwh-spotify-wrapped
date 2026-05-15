@@ -11,6 +11,7 @@ import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.v1.api import api_router
 
@@ -64,3 +65,33 @@ def readiness_check():
 @app.on_event("startup")
 async def on_startup() -> None:
     _log.info("startup: uvicorn ready version=%s", APP_VERSION)
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    # Add Bearer JWT security scheme so Swagger shows the Authorize button
+    schema.setdefault("components", {})
+    schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Pega aquí el JWT obtenido de GET /v1/auth/login",
+        }
+    }
+    # Apply security globally to all operations
+    for path in schema.get("paths", {}).values():
+        for operation in path.values():
+            operation.setdefault("security", [{"bearerAuth": []}])
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi

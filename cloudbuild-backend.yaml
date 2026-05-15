@@ -110,7 +110,7 @@ steps:
         gcloud run jobs deploy backend-migrate \
           --image="$$IMAGE" \
           --region=${_REGION} \
-          --add-cloudsql-instances="$PROJECT_ID:${_REGION}:spotify-postgres" \
+          --set-cloudsql-instances="$PROJECT_ID:${_REGION}:spotify-postgres" \
           --vpc-connector=${_VPC_CONNECTOR} \
           --vpc-egress=private-ranges-only \
           --set-secrets=DB_PASSWORD=db-password:latest \

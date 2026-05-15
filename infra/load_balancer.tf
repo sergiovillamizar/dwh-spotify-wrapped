@@ -104,7 +104,6 @@ resource "google_compute_backend_service" "backend_api" {
   name                  = "lb-backend-service-api"
   project               = var.project_id
   protocol              = "HTTPS"
-  port_name             = "https"
   timeout_sec           = 30
   enable_cdn            = false
   load_balancing_scheme = "EXTERNAL_MANAGED"
@@ -129,7 +128,6 @@ resource "google_compute_backend_service" "frontend_ssr" {
   name                  = "lb-backend-service-frontend"
   project               = var.project_id
   protocol              = "HTTPS"
-  port_name             = "https"
   timeout_sec           = 30
   enable_cdn            = true
   load_balancing_scheme = "EXTERNAL_MANAGED"
@@ -139,9 +137,8 @@ resource "google_compute_backend_service" "frontend_ssr" {
   }
 
   cdn_policy {
-    cache_mode                   = "USE_ORIGIN_HEADERS"
-    signed_url_key_names         = []
-    serve_while_stale            = 60
+    cache_mode        = "USE_ORIGIN_HEADERS"
+    serve_while_stale = 60
     cache_key_policy {
       include_host         = true
       include_protocol     = true

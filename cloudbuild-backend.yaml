@@ -17,7 +17,10 @@ availableSecrets:
 substitutions:
   _REGION: us-central1
   _AR_REPO: spotify-wrapped
-  _SERVICE: backend
+  # _SERVICE matches Terraform var.cloud_run_backend_name (spotify-backend)
+  _SERVICE: spotify-backend
+  # _IMAGE_NAME is the AR image name (separate from Cloud Run service name)
+  _IMAGE_NAME: backend
   _VPC_CONNECTOR: spotify-vpc-connector
 
 steps:
@@ -53,9 +56,9 @@ steps:
       - --target
       - production
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest
       - -f
       - backend/Dockerfile
       - backend/
@@ -68,7 +71,7 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}
     waitFor:
       - docker-build-backend
 
@@ -79,7 +82,7 @@ steps:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
       - --vpc-connector=${_VPC_CONNECTOR}
@@ -87,6 +90,9 @@ steps:
       - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest
       # $PROJECT_ID expands correctly in step args (not in substitutions block)
       - --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
+      # Ingress: only LB + internal traffic (matches Terraform config)
+      - --ingress=internal-and-cloud-load-balancing
+      # allUsers has roles/run.invoker (granted via Terraform IAM); LB requires this
       - --allow-unauthenticated
       - --min-instances=0
       - --max-instances=3
@@ -101,7 +107,7 @@ steps:
   # exits 0 to avoid blocking CI. The Cloud Run service handles retry on
   # startup once the DB is available.
   - id: alembic-upgrade-head
-    name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+    name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
     entrypoint: bash
     args:
       - -c
@@ -114,8 +120,8 @@ steps:
       - cloudrun-deploy-backend
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY

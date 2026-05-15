@@ -30,7 +30,10 @@ data "google_compute_global_address" "lb_ip" {
 # Update var.lb_domain when the real domain is registered.
 # ---------------------------------------------------------------------------
 resource "google_compute_managed_ssl_certificate" "lb_cert" {
-  name    = "lb-managed-cert"
+  # Name derived from domain so create_before_destroy works on domain changes:
+  # changing var.lb_domain creates a new cert with a different name, then
+  # detaches the old one from the proxy and destroys it.
+  name    = "lb-managed-cert-${replace(var.lb_domain, ".", "-")}"
   project = var.project_id
 
   managed {
@@ -104,7 +107,6 @@ resource "google_compute_backend_service" "backend_api" {
   name                  = "lb-backend-service-api"
   project               = var.project_id
   protocol              = "HTTPS"
-  port_name             = "https"
   timeout_sec           = 30
   enable_cdn            = false
   load_balancing_scheme = "EXTERNAL_MANAGED"
@@ -129,7 +131,6 @@ resource "google_compute_backend_service" "frontend_ssr" {
   name                  = "lb-backend-service-frontend"
   project               = var.project_id
   protocol              = "HTTPS"
-  port_name             = "https"
   timeout_sec           = 30
   enable_cdn            = true
   load_balancing_scheme = "EXTERNAL_MANAGED"
@@ -139,9 +140,8 @@ resource "google_compute_backend_service" "frontend_ssr" {
   }
 
   cdn_policy {
-    cache_mode                   = "USE_ORIGIN_HEADERS"
-    signed_url_key_names         = []
-    serve_while_stale            = 60
+    cache_mode        = "USE_ORIGIN_HEADERS"
+    serve_while_stale = 60
     cache_key_policy {
       include_host         = true
       include_protocol     = true

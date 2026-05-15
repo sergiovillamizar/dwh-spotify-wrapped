@@ -42,7 +42,7 @@ resource "google_cloudbuild_trigger" "backend_deploy" {
   }
 
   filename       = "cloudbuild-backend.yaml"
-  included_files = ["backend/**"]
+  included_files = ["backend/**", "cloudbuild-backend.yaml"]
 
   service_account = google_service_account.sa_cloudbuild.id
 

@@ -98,9 +98,9 @@ variable "static_bucket_name" {
 }
 
 variable "lb_domain" {
-  description = "Domain for the managed SSL certificate (update when real domain is available)"
+  description = "Domain for the managed SSL certificate. Using nip.io wildcard DNS for PoC (34-54-8-28.nip.io resolves automatically to 34.54.8.28). Replace with real domain when registered."
   type        = string
-  default     = "spotify-wrapped.app"
+  default     = "34-54-8-28.nip.io"
 }
 
 variable "cloud_run_backend_name" {
@@ -118,11 +118,13 @@ variable "cloud_run_frontend_name" {
 variable "cloud_run_backend_image" {
   description = "Container image for the FastAPI backend (managed by Cloud Build)"
   type        = string
-  default     = "gcr.io/dwh-spotify-wrapped/spotify-backend:latest"
+  # Artifact Registry path — updated by Cloud Build on every deploy
+  default     = "us-central1-docker.pkg.dev/dwh-spotify-wrapped/spotify-wrapped/backend:latest"
 }
 
 variable "cloud_run_frontend_image" {
   description = "Container image for the Next.js frontend (managed by Cloud Build)"
   type        = string
-  default     = "gcr.io/dwh-spotify-wrapped/spotify-frontend:latest"
+  # Placeholder until first frontend build; Cloud Build will update this image
+  default     = "us-docker.pkg.dev/cloudrun/container/hello:latest"
 }

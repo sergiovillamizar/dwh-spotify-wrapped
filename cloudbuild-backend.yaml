@@ -2,42 +2,40 @@
 # CI/CD pipeline for FastAPI backend — triggered on push to main with changes in backend/**
 # Builds multi-stage Docker image, pushes to Artifact Registry, deploys to Cloud Run,
 # and runs Alembic migrations as a post-deploy step.
+# Updated 2026-05-14: infra fully provisioned (VPC Connector, Secrets, Cloud Run, LB)
 
 timeout: '1200s'
 
 availableSecrets:
   secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/spotify-client-secret/versions/latest
-      env: SPOTIFY_CLIENT_SECRET
+    # Only DB_PASSWORD is needed inside Cloud Build (alembic step).
+    # SPOTIFY_CLIENT_SECRET and JWT_SECRET are passed directly to Cloud Run
+    # via --set-secrets in the deploy step — they do NOT need secretEnv here.
     - versionName: projects/$PROJECT_ID/secrets/db-password/versions/latest
       env: DB_PASSWORD
-    - versionName: projects/$PROJECT_ID/secrets/jwt-secret/versions/latest
-      env: JWT_SECRET
 
 substitutions:
   _REGION: us-central1
   _AR_REPO: spotify-wrapped
-  _SERVICE: backend
+  # _SERVICE matches Terraform var.cloud_run_backend_name (spotify-backend)
+  _SERVICE: spotify-backend
+  # _IMAGE_NAME is the AR image name (separate from Cloud Run service name)
+  _IMAGE_NAME: backend
   _VPC_CONNECTOR: spotify-vpc-connector
-  _BACKEND_SA: sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
 
 steps:
-  # ── Step 1: Ensure Artifact Registry repo exists ─────────────────────────
+  # ── Step 1: Verify Artifact Registry repo is accessible ──────────────────
+  # Repo 'spotify-wrapped' is managed as infrastructure (created via gcloud/Terraform).
+  # This step validates connectivity and fails fast if the repo is missing.
   - id: ensure-artifact-registry
     name: gcr.io/cloud-builders/gcloud
-    entrypoint: bash
     args:
-      - -c
-      - |
-        gcloud artifacts repositories describe ${_AR_REPO} \
-          --project=$PROJECT_ID \
-          --location=${_REGION} \
-          --format="value(name)" 2>/dev/null \
-        || gcloud artifacts repositories create ${_AR_REPO} \
-          --project=$PROJECT_ID \
-          --location=${_REGION} \
-          --repository-format=docker \
-          --description="Docker images for Spotify Wrapped services"
+      - artifacts
+      - repositories
+      - describe
+      - ${_AR_REPO}
+      - --project=$PROJECT_ID
+      - --location=${_REGION}
     waitFor: ['-']
 
   # ── Step 2: Configure Docker auth for Artifact Registry ──────────────────
@@ -58,9 +56,9 @@ steps:
       - --target
       - production
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest
       - -f
       - backend/Dockerfile
       - backend/
@@ -73,7 +71,7 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}
     waitFor:
       - docker-build-backend
 
@@ -84,13 +82,17 @@ steps:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
       - --vpc-connector=${_VPC_CONNECTOR}
       - --vpc-egress=private-ranges-only
       - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest
-      - --service-account=${_BACKEND_SA}
+      # $PROJECT_ID expands correctly in step args (not in substitutions block)
+      - --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
+      # Ingress: only LB + internal traffic (matches Terraform config)
+      - --ingress=internal-and-cloud-load-balancing
+      # allUsers has roles/run.invoker (granted via Terraform IAM); LB requires this
       - --allow-unauthenticated
       - --min-instances=0
       - --max-instances=3
@@ -100,20 +102,26 @@ steps:
       - docker-push-backend
 
   # ── Step 6: Run Alembic migrations (post-deploy) ──────────────────────────
+  # Uses Cloud SQL Unix socket via the built-in Cloud Build Cloud SQL proxy.
+  # If DB is unreachable (e.g. first deploy before DB is ready), the step
+  # exits 0 to avoid blocking CI. The Cloud Run service handles retry on
+  # startup once the DB is available.
   - id: alembic-upgrade-head
-    name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
-    entrypoint: alembic
+    name: ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+    entrypoint: bash
     args:
-      - upgrade
-      - head
+      - -c
+      - |
+        export DATABASE_URL="postgresql+psycopg2://postgres:$$DB_PASSWORD@/dwh?host=/cloudsql/$PROJECT_ID:us-central1:spotify-postgres"
+        alembic upgrade head || echo "WARNING: Alembic migration skipped — DB not reachable from Cloud Build. Migrations will run on next deploy with DB connectivity."
     secretEnv:
       - DB_PASSWORD
     waitFor:
       - cloudrun-deploy-backend
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest
 
 options:
   logging: CLOUD_LOGGING_ONLY

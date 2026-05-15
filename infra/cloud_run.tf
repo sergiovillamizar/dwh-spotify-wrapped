@@ -46,7 +46,7 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       ports {
-        container_port = 8080
+        container_port = 8000
       }
 
       # Secrets injected as environment variables at runtime
@@ -97,8 +97,8 @@ resource "google_cloud_run_v2_service" "backend" {
 
       startup_probe {
         http_get {
-          path = "/health"
-          port = 8080
+          path = "/v1/health"
+          port = 8000
         }
         initial_delay_seconds = 5
         timeout_seconds       = 3
@@ -108,8 +108,8 @@ resource "google_cloud_run_v2_service" "backend" {
 
       liveness_probe {
         http_get {
-          path = "/health"
-          port = 8080
+          path = "/v1/health"
+          port = 8000
         }
         initial_delay_seconds = 15
         timeout_seconds       = 3

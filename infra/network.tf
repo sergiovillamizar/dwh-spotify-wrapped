@@ -167,10 +167,15 @@ resource "google_vpc_access_connector" "connector" {
   name          = var.vpc_connector_name
   region        = var.region
   project       = var.project_id
-  network       = google_compute_network.vpc.name
-  ip_cidr_range = var.subnet_serverless_cidr
   min_instances = 2
   max_instances = 3
+
+  # Use subnet-based connector — avoids CIDR conflict with the existing
+  # serverless-conn subnet (10.8.0.0/28). The subnet was pre-created by Sergio.
+  subnet {
+    name       = google_compute_subnetwork.serverless_conn.name
+    project_id = var.project_id
+  }
 
   depends_on = [google_compute_subnetwork.serverless_conn]
 }
@@ -180,7 +185,7 @@ resource "google_vpc_access_connector" "connector" {
 # Allocates a /16 range for Google-managed peering services.
 # ---------------------------------------------------------------------------
 resource "google_compute_global_address" "private_service_range" {
-  name          = "google-managed-services-range"
+  name          = "private-ip-alloc"  # existing GCP resource name created by Sergio
   project       = var.project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"

@@ -19,7 +19,6 @@ substitutions:
   _AR_REPO: spotify-wrapped
   _SERVICE: backend
   _VPC_CONNECTOR: spotify-vpc-connector
-  _BACKEND_SA: sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
 
 steps:
   # ── Step 1: Verify Artifact Registry repo is accessible ──────────────────
@@ -86,7 +85,8 @@ steps:
       - --vpc-connector=${_VPC_CONNECTOR}
       - --vpc-egress=private-ranges-only
       - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,JWT_SECRET=jwt-secret:latest
-      - --service-account=${_BACKEND_SA}
+      # $PROJECT_ID expands correctly in step args (not in substitutions block)
+      - --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com
       - --allow-unauthenticated
       - --min-instances=0
       - --max-instances=3

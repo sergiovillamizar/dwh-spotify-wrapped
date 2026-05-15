@@ -6,10 +6,10 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    DateTime,
     Integer,
     String,
     Text,
-    Timestamp,
     create_engine,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -54,8 +54,8 @@ class DimUser(Base):
     product = Column(String(20))
     spotify_access_token = Column(Text)
     spotify_refresh_token = Column(Text)
-    token_expires_at = Column(Timestamp)
-    loaded_at = Column(Timestamp)
+    token_expires_at = Column(DateTime)
+    loaded_at = Column(DateTime)
 
 
 class PKCESession(Base):
@@ -63,7 +63,7 @@ class PKCESession(Base):
 
     state = Column(String(128), primary_key=True)
     verifier = Column(Text, nullable=False)
-    created_at = Column(Timestamp)
+    created_at = Column(DateTime)
 
 
 class DimArtist(Base):
@@ -76,7 +76,7 @@ class DimArtist(Base):
     popularity = Column(Integer)
     followers_count = Column(Integer)
     genres = Column(ARRAY(String))
-    loaded_at = Column(Timestamp)
+    loaded_at = Column(DateTime)
 
 
 class DimTrack(Base):
@@ -91,7 +91,7 @@ class DimTrack(Base):
     duration_ms = Column(Integer)
     popularity = Column(Integer)
     explicit = Column(Boolean)
-    loaded_at = Column(Timestamp)
+    loaded_at = Column(DateTime)
 
 
 class FactListeningHistory(Base):
@@ -102,7 +102,7 @@ class FactListeningHistory(Base):
     user_id = Column(Integer, nullable=False)
     track_id = Column(Integer, nullable=False)
     artist_id = Column(Integer, nullable=False)
-    played_at = Column(Timestamp, nullable=False)
+    played_at = Column(DateTime, nullable=False)
     hour_of_day = Column(Integer)
     day_of_week = Column(String(10))
     context_type = Column(String(50))
@@ -114,8 +114,8 @@ class ETLAudit(Base):
 
     audit_id = Column(Integer, primary_key=True, autoincrement=True)
     spotify_user_id = Column(String(100), nullable=False)
-    started_at = Column(Timestamp, nullable=False)
-    finished_at = Column(Timestamp)
+    started_at = Column(DateTime, nullable=False)
+    finished_at = Column(DateTime)
     duration_ms = Column(Integer)
     status = Column(String(20), nullable=False)
     error_message = Column(Text)

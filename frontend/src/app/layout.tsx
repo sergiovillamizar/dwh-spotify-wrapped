@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import "./globals.css";
+
 export const metadata: Metadata = {
   title: "Mi Spotify Wrapped",
   description: "Personal Data Warehouse — Spotify listening analytics",

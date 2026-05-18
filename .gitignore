@@ -6,6 +6,7 @@
 
 # Secrets
 key.json
+*-key.json
 *.pem
 *.key
 

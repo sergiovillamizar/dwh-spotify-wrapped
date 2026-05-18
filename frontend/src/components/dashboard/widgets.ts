@@ -5,7 +5,7 @@ export interface DashboardWidgetConfig {
   endpoint: string;
 }
 
-/** Widget registry for DP-S-028 skeleton; data wiring lands in DP-S-029/030. */
+/** Widget registry; top-artists wired in DP-S-029, others in DP-S-030+. */
 export const DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
   {
     id: "top-artists",

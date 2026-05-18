@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import styles from "@/app/dashboard/dashboard.module.css";
+import { TopArtistsWidget } from "@/components/dashboard/TopArtistsWidget";
 import { WidgetPlaceholder } from "@/components/dashboard/WidgetPlaceholder";
 import { WidgetSlot } from "@/components/dashboard/WidgetSlot";
 import { DASHBOARD_WIDGETS } from "@/components/dashboard/widgets";
@@ -19,6 +20,24 @@ const PLACEHOLDER_VARIANTS: Record<
   "peak-hour": "metric",
   genres: "bars",
 };
+
+function renderWidgetBody(widgetId: (typeof DASHBOARD_WIDGETS)[number]["id"]) {
+  if (widgetId === "top-artists") {
+    return <TopArtistsWidget />;
+  }
+
+  const widget = DASHBOARD_WIDGETS.find((w) => w.id === widgetId);
+  return (
+    <>
+      <WidgetPlaceholder variant={PLACEHOLDER_VARIANTS[widgetId]} />
+      {widget ? (
+        <p className={styles.slotHint}>
+          Endpoint: <code>{widget.endpoint}</code>
+        </p>
+      ) : null}
+    </>
+  );
+}
 
 export function DashboardView() {
   const router = useRouter();
@@ -47,10 +66,7 @@ export function DashboardView() {
             title={widget.title}
             description={widget.description}
           >
-            <WidgetPlaceholder variant={PLACEHOLDER_VARIANTS[widget.id]} />
-            <p className={styles.slotHint}>
-              Endpoint: <code>{widget.endpoint}</code>
-            </p>
+            {renderWidgetBody(widget.id)}
           </WidgetSlot>
         ))}
       </div>

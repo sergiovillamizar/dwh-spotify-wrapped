@@ -50,12 +50,15 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
             .order_by(ETLAudit.started_at.desc())
             .first()
         )
-        cursor_before_ms: int | None = last_audit.cursor_next_ms if last_audit else None
-        audit.cursor_after_ms = cursor_before_ms
+        # cursor_next_ms holds the played_at of the newest track from the last
+        # successful run. Pass it as `after` so Spotify returns only tracks
+        # played AFTER that point — true incremental load.
+        cursor_after_ms: int | None = last_audit.cursor_next_ms if last_audit else None
+        audit.cursor_after_ms = cursor_after_ms
 
         top_artists_raw = await client.get_top_artists(limit=50)
         top_tracks_raw = await client.get_top_tracks(limit=50)
-        recently_played_raw = await client.get_recently_played(limit=50, before=cursor_before_ms)
+        recently_played_raw = await client.get_recently_played(limit=50, after=cursor_after_ms)
 
         artists_data: list[dict] = top_artists_raw.get("items", [])
         tracks_data: list[dict] = top_tracks_raw.get("items", [])

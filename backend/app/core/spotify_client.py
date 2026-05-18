@@ -140,11 +140,20 @@ class SpotifyClient:
     async def get_recently_played(
         self,
         limit: int = 50,
-        before: int | None = None,
+        after: int | None = None,
     ) -> dict:
+        """
+        Fetch recently played tracks.
+
+        Args:
+            limit: Max items to return (max 50).
+            after:  Unix timestamp in ms. Returns tracks played AFTER this
+                    cursor (exclusive) — used for incremental loads.
+                    If None, returns the most recent 50 plays.
+        """
         params: dict[str, str | int] = {"limit": limit}
-        if before is not None:
-            params["before"] = before
+        if after is not None:
+            params["after"] = after
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.BASE_URL}/me/player/recently-played",

@@ -6,7 +6,10 @@ Project:  dwh-spotify-wrapped
 Author:   Didier
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# Colombia Standard Time: UTC-5 (no DST)
+COT = timezone(timedelta(hours=-5))
 
 from sqlalchemy.orm import Session
 
@@ -220,13 +223,18 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
             if existing_fact:
                 history_skipped += 1
             else:
+                # Convert UTC played_at to COT (UTC-5) for Colombia analytics
+                played_at_cot = played_at.replace(tzinfo=timezone.utc).astimezone(COT)
+
                 fact = FactListeningHistory(
                     user_id=user.user_id,
                     track_id=track_fk,
                     artist_id=fact_artist_id,
                     played_at=played_at,
-                    hour_of_day=played_at.hour,
-                    day_of_week=played_at.strftime("%A").lower(),
+                    hour_of_day=played_at.hour,              # UTC — preserved
+                    day_of_week=played_at.strftime("%A").lower(),  # UTC — preserved
+                    hour_of_day_cot=played_at_cot.hour,     # COT — para analíticas Colombia
+                    day_of_week_cot=played_at_cot.strftime("%A").lower(),  # COT
                     context_type=context_type,
                 )
                 db.add(fact)

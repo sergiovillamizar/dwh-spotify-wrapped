@@ -41,8 +41,9 @@ resource "google_sql_database_instance" "postgres" {
     }
 
     ip_configuration {
-      ipv4_enabled    = false
+      ipv4_enabled    = true   # public IP required for Colab / external EDA access via Cloud SQL Connector
       private_network = "projects/${var.project_id}/global/networks/${var.vpc_name}"
+      # Cloud SQL Python Connector enforces IAM auth + mTLS — no raw password over internet
     }
 
     database_flags {

@@ -72,4 +72,22 @@ async def get_top_tracks(
             db.flush()
         tracks.append(existing)
     db.commit()
-    return TopTracksResponse(items=tracks, total=len(tracks))
+
+    items: list[TrackResponse] = []
+    for track in tracks:
+        artist_name: str | None = None
+        if track.artist_id is not None:
+            artist = (
+                db.query(DimArtist)
+                .filter(DimArtist.artist_id == track.artist_id)
+                .first()
+            )
+            if artist is not None:
+                artist_name = artist.name
+        items.append(
+            TrackResponse.model_validate(track).model_copy(
+                update={"artist_name": artist_name}
+            )
+        )
+
+    return TopTracksResponse(items=items, total=len(items))

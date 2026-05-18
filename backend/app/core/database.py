@@ -103,8 +103,10 @@ class FactListeningHistory(Base):
     track_id = Column(Integer, nullable=False)
     artist_id = Column(Integer, nullable=False)
     played_at = Column(DateTime, nullable=False)
-    hour_of_day = Column(Integer)
-    day_of_week = Column(String(10))
+    hour_of_day = Column(Integer)           # hora UTC (original)
+    day_of_week = Column(String(10))        # día UTC (original)
+    hour_of_day_cot = Column(Integer)       # hora COT (UTC-5) — para análisis Colombia
+    day_of_week_cot = Column(String(10))    # día COT (UTC-5) — para análisis Colombia
     context_type = Column(String(50))
 
 

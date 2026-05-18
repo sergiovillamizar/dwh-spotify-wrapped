@@ -133,6 +133,25 @@ resource "google_project_iam_member" "cloudbuild_log_writer" {
 }
 
 # ---------------------------------------------------------------------------
+# Service Account — Colab EDA (read-only access to Cloud SQL)
+# Created manually via gcloud 2026-05-18 then imported here.
+# terraform import google_service_account.sa_colab_eda projects/dwh-spotify-wrapped/serviceAccounts/sa-colab-eda@dwh-spotify-wrapped.iam.gserviceaccount.com
+# ---------------------------------------------------------------------------
+resource "google_service_account" "sa_colab_eda" {
+  account_id   = "sa-colab-eda"
+  display_name = "Colab EDA Read-Only"
+  description  = "Used by Google Colab notebooks to connect to Cloud SQL via Cloud SQL Python Connector. Read-only for EDA."
+  project      = var.project_id
+}
+
+# Allow Colab SA to connect to Cloud SQL instances (mTLS via Connector)
+resource "google_project_iam_member" "colab_eda_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.sa_colab_eda.email}"
+}
+
+# ---------------------------------------------------------------------------
 # Existing infra SA — spotify-infra (created manually by Sergio)
 # Recurso existente:
 # terraform import google_service_account.sa_infra projects/dwh-spotify-wrapped/serviceAccounts/spotify-infra@dwh-spotify-wrapped.iam.gserviceaccount.com

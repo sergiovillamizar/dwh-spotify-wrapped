@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import styles from "@/app/dashboard/dashboard.module.css";
 import { TopArtistsWidget } from "@/components/dashboard/TopArtistsWidget";
+import { TopTracksWidget } from "@/components/dashboard/TopTracksWidget";
 import { WidgetPlaceholder } from "@/components/dashboard/WidgetPlaceholder";
 import { WidgetSlot } from "@/components/dashboard/WidgetSlot";
 import { DASHBOARD_WIDGETS } from "@/components/dashboard/widgets";
@@ -24,6 +25,9 @@ const PLACEHOLDER_VARIANTS: Record<
 function renderWidgetBody(widgetId: (typeof DASHBOARD_WIDGETS)[number]["id"]) {
   if (widgetId === "top-artists") {
     return <TopArtistsWidget />;
+  }
+  if (widgetId === "top-tracks") {
+    return <TopTracksWidget />;
   }
 
   const widget = DASHBOARD_WIDGETS.find((w) => w.id === widgetId);

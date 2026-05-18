@@ -5,7 +5,7 @@ export interface DashboardWidgetConfig {
   endpoint: string;
 }
 
-/** Widget registry; top-artists wired in DP-S-029, others in DP-S-030+. */
+/** Widget registry; top-artists (S-029) and top-tracks (S-030) wired. */
 export const DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
   {
     id: "top-artists",

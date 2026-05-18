@@ -42,14 +42,15 @@ resource "google_cloud_run_v2_service" "backend" {
           cpu    = "1"
           memory = "512Mi"
         }
-        cpu_idle = true
+        cpu_idle          = true
+        startup_cpu_boost = true
       }
 
       ports {
         container_port = 8000
       }
 
-      # Secrets injected as environment variables at runtime
+      # ── Secrets ──────────────────────────────────────────────────────────
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -70,8 +71,9 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
+      # config.py reads SECRET_KEY (not JWT_SECRET) for token signing
       env {
-        name = "JWT_SECRET"
+        name = "SECRET_KEY"
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.jwt_secret.secret_id
@@ -80,9 +82,26 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
+      # ── Plain env vars ────────────────────────────────────────────────────
+      # config.py builds DATABASE_URL from DB_PASSWORD + CLOUD_SQL_INSTANCE
       env {
-        name  = "CLOUD_SQL_CONNECTION_NAME"
+        name  = "CLOUD_SQL_INSTANCE"
         value = google_sql_database_instance.postgres.connection_name
+      }
+
+      env {
+        name  = "SPOTIFY_CLIENT_ID"
+        value = var.spotify_client_id
+      }
+
+      env {
+        name  = "SPOTIFY_REDIRECT_URI"
+        value = "https://${var.lb_domain}/v1/auth/callback"
+      }
+
+      env {
+        name  = "FRONTEND_URL"
+        value = "https://${var.lb_domain}"
       }
 
       env {
@@ -93,6 +112,12 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "ENVIRONMENT"
         value = var.environment
+      }
+
+      # Cloud SQL Unix socket — required for psycopg2 ?host=/cloudsql/<instance>
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
       }
 
       startup_probe {
@@ -115,6 +140,13 @@ resource "google_cloud_run_v2_service" "backend" {
         timeout_seconds       = 3
         period_seconds        = 30
         failure_threshold     = 3
+      }
+    }
+
+    volumes {
+      name = "cloudsql"
+      cloud_sql_instance {
+        instances = [google_sql_database_instance.postgres.connection_name]
       }
     }
   }

@@ -115,6 +115,12 @@ variable "cloud_run_frontend_name" {
   default     = "spotify-frontend"
 }
 
+variable "spotify_client_id" {
+  description = "Spotify OAuth application Client ID (public, non-secret)"
+  type        = string
+  default     = "f8258104cb4c451a88b4cd90cfe724f2"
+}
+
 variable "cloud_run_backend_image" {
   description = "Container image for the FastAPI backend (managed by Cloud Build)"
   type        = string

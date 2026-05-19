@@ -78,7 +78,7 @@ steps:
       - -c
       - |
         set -e
-        for s in spotify-client-secret db-password jwt-secret; do
+        for s in spotify-client-secret db-password jwt-secret lastfm-api-key; do
           gcloud secrets versions access latest --secret="$s" --project=$PROJECT_ID \
             > /dev/null \
             && echo "[ok] secret '$s' is accessible" \
@@ -99,7 +99,7 @@ steps:
       - --vpc-connector=${_VPC_CONNECTOR}
       - --vpc-egress=private-ranges-only
       - --set-cloudsql-instances=$PROJECT_ID:${_REGION}:spotify-postgres
-      - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,SECRET_KEY=jwt-secret:latest
+      - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,DB_PASSWORD=db-password:latest,SECRET_KEY=jwt-secret:latest,LASTFM_API_KEY=lastfm-api-key:latest
       - --set-env-vars=SPOTIFY_CLIENT_ID=${_SPOTIFY_CLIENT_ID},CLOUD_SQL_INSTANCE=$PROJECT_ID:${_REGION}:spotify-postgres,SPOTIFY_REDIRECT_URI=https://${_LB_DOMAIN}/v1/auth/callback,FRONTEND_URL=https://${_LB_DOMAIN}
       # $PROJECT_ID expands correctly in step args (not in substitutions block)
       - --service-account=sa-cloudrun-backend@$PROJECT_ID.iam.gserviceaccount.com

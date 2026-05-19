@@ -19,6 +19,7 @@ substitutions:
   _VPC_CONNECTOR: spotify-vpc-connector
   _STATIC_BUCKET: spotify-wrapped-static
   _URL_MAP: lb-url-map
+  _API_URL: https://34-54-8-28.nip.io
 
 steps:
   # ── Step 1: Ensure Artifact Registry repo exists ─────────────────────────
@@ -66,6 +67,8 @@ steps:
       - run
       - build
     dir: frontend
+    env:
+      - NEXT_PUBLIC_API_URL=${_API_URL}
     secretEnv:
       - SPOTIFY_CLIENT_SECRET
       - JWT_SECRET

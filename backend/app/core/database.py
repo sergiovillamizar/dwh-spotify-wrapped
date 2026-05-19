@@ -76,6 +76,8 @@ class DimArtist(Base):
     popularity = Column(Integer)
     followers_count = Column(Integer)
     genres = Column(ARRAY(String))
+    lastfm_listeners = Column(Integer)   # monthly listeners — popularity proxy
+    lastfm_tags = Column(ARRAY(String))  # genre tags from Last.fm
     loaded_at = Column(DateTime)
 
 

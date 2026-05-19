@@ -1,7 +1,8 @@
 """
 backfill_followers.py
-One-shot backfill: refresh user Spotify tokens, fetch top artists,
-and update dim_artists.followers_count for matching records.
+One-shot backfill: refresh user token, iterate over EVERY dim_artists row
+with followers_count IS NULL, call GET /artists/{id} individually, and
+write followers_count.
 
 Runs as a Cloud Run Job. Not part of the regular ETL.
 """
@@ -10,6 +11,8 @@ import logging
 import sys
 from datetime import datetime, timedelta
 
+import httpx
+
 from app.core.config import get_settings
 from app.core.database import DimArtist, DimUser, _get_session_local
 from app.core.spotify_client import SpotifyClient
@@ -17,9 +20,11 @@ from app.core.spotify_client import SpotifyClient
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("backfill_followers")
 
+# Throttle to avoid Spotify rate limits (max ~10 req/s sustained)
+_SLEEP_BETWEEN_CALLS = 0.15
+
 
 async def refresh_token_for_user(user: DimUser, settings) -> str:
-    """Force-refresh the user's Spotify access_token via refresh_token grant."""
     client = SpotifyClient(access_token="")
     tokens = await client.refresh_token(settings.SPOTIFY_CLIENT_ID, user.spotify_refresh_token)
     user.spotify_access_token = tokens["access_token"]
@@ -29,68 +34,75 @@ async def refresh_token_for_user(user: DimUser, settings) -> str:
     return tokens["access_token"]
 
 
+async def fetch_single_artist(access_token: str, spotify_id: str) -> dict | None:
+    """GET /v1/artists/{id} — single artist (works where batch returned 403)."""
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"https://api.spotify.com/v1/artists/{spotify_id}"
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        try:
+            r = await client.get(url, headers=headers)
+            r.raise_for_status()
+            return r.json()
+        except httpx.HTTPStatusError as exc:
+            logger.warning("GET /artists/%s -> %d", spotify_id, exc.response.status_code)
+            return None
+        except Exception as exc:
+            logger.warning("GET /artists/%s failed: %s", spotify_id, exc)
+            return None
+
+
 async def main() -> int:
     settings = get_settings()
     SessionLocal = _get_session_local()
     db = SessionLocal()
     try:
         users = db.query(DimUser).all()
-        logger.info("Found %d user(s) in dim_users", len(users))
         if not users:
+            logger.error("No users in dim_users")
             return 0
+        user = users[0]
+        logger.info("Using token of user %s (%s)", user.spotify_id, user.display_name)
 
-        total_updated = 0
+        access_token = await refresh_token_for_user(user, settings)
+        db.commit()
+        logger.info("Token refreshed")
 
-        for user in users:
-            logger.info("Processing user %s (%s)", user.spotify_id, user.display_name)
+        targets = (
+            db.query(DimArtist)
+            .filter(DimArtist.followers_count.is_(None))
+            .order_by(DimArtist.artist_id)
+            .all()
+        )
+        logger.info("Found %d artist(s) with followers_count IS NULL", len(targets))
 
-            try:
-                access_token = await refresh_token_for_user(user, settings)
-                db.commit()
-                logger.info("Token refreshed for %s", user.spotify_id)
-            except Exception as exc:
-                logger.error("Token refresh failed for %s: %s", user.spotify_id, exc)
-                continue
+        updated = 0
+        for idx, artist in enumerate(targets, start=1):
+            data = await fetch_single_artist(access_token, artist.spotify_id)
+            if data:
+                total = (data.get("followers") or {}).get("total")
+                if total is not None:
+                    artist.followers_count = total
+                    if data.get("genres"):
+                        artist.genres = data["genres"]
+                    updated += 1
+                    if idx % 10 == 0 or idx == len(targets):
+                        logger.info(
+                            "[%d/%d] %s -> followers=%s",
+                            idx, len(targets), artist.name, total,
+                        )
+            await asyncio.sleep(_SLEEP_BETWEEN_CALLS)
 
-            client = SpotifyClient(access_token=access_token)
-
-            # Fetch top artists across all time_ranges to maximize coverage
-            for time_range in ("short_term", "medium_term", "long_term"):
-                try:
-                    raw = await client.get_top_artists(time_range=time_range, limit=50)
-                except Exception as exc:
-                    logger.warning("get_top_artists(%s) failed: %s", time_range, exc)
-                    continue
-
-                items = raw.get("items", [])
-                logger.info("time_range=%s -> %d artists from Spotify", time_range, len(items))
-
-                for a in items:
-                    spotify_id = a.get("id")
-                    followers_total = (a.get("followers") or {}).get("total")
-                    if not spotify_id or followers_total is None:
-                        continue
-
-                    existing = (
-                        db.query(DimArtist)
-                        .filter(DimArtist.spotify_id == spotify_id)
-                        .first()
-                    )
-                    if existing and existing.followers_count != followers_total:
-                        existing.followers_count = followers_total
-                        # also refresh genres if Spotify provided some
-                        if a.get("genres"):
-                            existing.genres = a["genres"]
-                        total_updated += 1
-
+            # commit every 25 to avoid losing progress on long runs
+            if idx % 25 == 0:
                 db.commit()
 
-        logger.info("Backfill done: %d artist row(s) updated", total_updated)
-        return total_updated
+        db.commit()
+        logger.info("Backfill done: %d artist row(s) updated", updated)
+        return updated
     finally:
         db.close()
 
 
 if __name__ == "__main__":
     updated = asyncio.run(main())
-    sys.exit(0 if updated >= 0 else 1)
+    sys.exit(0)

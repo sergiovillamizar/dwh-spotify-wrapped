@@ -1,9 +1,6 @@
 "use client";
 
-// useSearchParams() requires opting out of static generation
-export const dynamic = "force-dynamic";
-
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setToken } from "@/lib/auth";
 
@@ -12,9 +9,10 @@ import { setToken } from "@/lib/auth";
  * The backend redirects here after Spotify authentication:
  *   {FRONTEND_URL}/callback?token={jwt}
  *
- * Stores the JWT in localStorage and redirects to /profile.
+ * useSearchParams() must be inside a <Suspense> boundary in Next.js 14.
  */
-export default function CallbackPage() {
+
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -28,6 +26,10 @@ export default function CallbackPage() {
     }
   }, [router, searchParams]);
 
+  return null;
+}
+
+export default function CallbackPage() {
   return (
     <main
       style={{
@@ -41,6 +43,9 @@ export default function CallbackPage() {
       }}
     >
       Autenticando…
+      <Suspense>
+        <CallbackHandler />
+      </Suspense>
     </main>
   );
 }

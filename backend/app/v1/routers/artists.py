@@ -8,8 +8,12 @@ Author:   Didier
 
 from datetime import datetime
 
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import Settings, get_settings
 from app.core.database import DimArtist, DimUser, get_db
@@ -31,13 +35,19 @@ async def get_top_artists(
     raw = await client.get_top_artists(time_range=time_range, limit=50)
     artists: list[DimArtist] = []
     for a in raw.get("items", []):
+        followers_raw = a.get("followers")
+        followers_total = (followers_raw or {}).get("total")
+        logger.info(
+            "Spotify artist %r — followers_raw=%s followers_total=%s",
+            a.get("name"), followers_raw, followers_total,
+        )
         existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
         if not existing:
             existing = DimArtist(
                 spotify_id=a["id"],
                 name=a["name"],
                 popularity=a.get("popularity"),
-                followers_count=a.get("followers", {}).get("total"),
+                followers_count=followers_total,
                 genres=a.get("genres") or [],
                 loaded_at=datetime.utcnow(),
             )
@@ -46,7 +56,7 @@ async def get_top_artists(
         else:
             # Enrich stub records that were created without popularity data
             existing.popularity = a.get("popularity")
-            existing.followers_count = a.get("followers", {}).get("total")
+            existing.followers_count = followers_total
             existing.genres = a.get("genres") or existing.genres
         artists.append(existing)
     db.commit()

@@ -82,6 +82,16 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
+      env {
+        name = "LASTFM_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.lastfm_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
       # ── Plain env vars ────────────────────────────────────────────────────
       # config.py builds DATABASE_URL from DB_PASSWORD + CLOUD_SQL_INSTANCE
       env {

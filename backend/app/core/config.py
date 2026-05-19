@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Email of sa-etl-scheduler; verified on every POST /v1/etl/run-batch request.
     SCHEDULER_SA_EMAIL: str = "sa-etl-scheduler@dwh-spotify-wrapped.iam.gserviceaccount.com"
 
+    # Last.fm API key — used to enrich dim_artists stubs with genres and listeners.
+    # Optional: if empty, the enrichment step is silently skipped.
+    LASTFM_API_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")

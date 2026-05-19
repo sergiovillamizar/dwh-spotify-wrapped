@@ -83,67 +83,6 @@ async def enrich_all_artists(
     return enriched
 
 
-async def enrich_artists_followers(
-    db: Session,
-    access_token: str,
-) -> int:
-    """
-    Back-fill followers_count for dim_artists stubs that have it as NULL.
-
-    Artists created from recently_played only carry spotify_id + name;
-    followers_count is only available via GET /artists?ids=... (batch).
-    Calls Spotify in batches of 50. Best-effort: failures are logged and skipped.
-
-    Returns:
-        Number of artists updated.
-    """
-    stubs = (
-        db.query(DimArtist)
-        .filter(DimArtist.followers_count == None)  # noqa: E711
-        .all()
-    )
-    if not stubs:
-        logger.info("Spotify followers enrichment: no stubs with NULL followers_count")
-        return 0
-
-    logger.info("Spotify followers enrichment: %d artist(s) with NULL followers_count", len(stubs))
-    client = SpotifyClient(access_token=access_token)
-    updated = 0
-
-    # Process in batches of 50 (Spotify API limit)
-    for i in range(0, len(stubs), 50):
-        batch = stubs[i : i + 50]
-        ids = [a.spotify_id for a in batch]
-        logger.info(
-            "Spotify followers enrichment batch %d: fetching %d artists",
-            i // 50,
-            len(ids),
-        )
-        try:
-            artists_data = await client.get_artists_batch(ids)
-            id_to_data = {a["id"]: a for a in artists_data if a}
-            logger.info(
-                "Spotify followers enrichment batch %d: got %d responses",
-                i // 50,
-                len(id_to_data),
-            )
-            for artist in batch:
-                data = id_to_data.get(artist.spotify_id)
-                if data:
-                    artist.followers_count = (data.get("followers") or {}).get("total")
-                    updated += 1
-        except Exception as exc:
-            logger.warning(
-                "Spotify batch artists fetch failed (batch %d, ids=%s): %s",
-                i // 50,
-                ids[:3],  # log first 3 IDs for debugging
-                exc,
-            )
-
-    logger.info("Spotify followers enrichment: %d artist(s) updated", updated)
-    return updated
-
-
 async def maybe_refresh_token(user: DimUser, db: Session, settings: Settings) -> str:
     if user.token_expires_at and user.token_expires_at - datetime.utcnow() < timedelta(minutes=5):
         client = SpotifyClient(access_token="")
@@ -200,19 +139,15 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
         for a in artists_data:
             existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
             if existing:
-                # Always refresh followers/genres from top-artists response (full objects)
-                followers_total = (a.get("followers") or {}).get("total")
-                if followers_total is not None:
-                    existing.followers_count = followers_total
-                existing.genres = a.get("genres") or existing.genres
                 artists_skipped += 1
                 artist_id_map[a["id"]] = existing.artist_id
             else:
+                # NOTA: Spotify ya NO retorna followers/genres/popularity para
+                # apps en Development Mode (nov-2024). Esos campos se enriquecen
+                # vía Last.fm en enrich_all_artists().
                 new_artist = DimArtist(
                     spotify_id=a["id"],
                     name=a["name"],
-                    popularity=a.get("popularity"),
-                    followers_count=a.get("followers", {}).get("total"),
                     genres=a.get("genres") or [],
                     loaded_at=datetime.utcnow(),
                 )
@@ -381,15 +316,10 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
         except Exception as exc:
             logger.warning("Last.fm enrichment step failed (non-fatal): %s", exc)
 
-        # ── Spotify followers enrichment ────────────────────────────────────
-        # Back-fill followers_count for stubs created from recently_played.
-        # Uses GET /artists?ids=... batch (max 50 IDs per call).
-        # Best-effort: failures are logged but don't fail the ETL.
-        try:
-            followers_updated = await enrich_artists_followers(db, access_token)
-            logger.info("Spotify followers enrichment: %d artist(s) updated", followers_updated)
-        except Exception as exc:
-            logger.warning("Spotify followers enrichment step failed (non-fatal): %s", exc)
+        # NOTA: el enrichment de followers_count vía Spotify fue removido —
+        # Spotify deja de exponer followers/genres/popularity para apps en
+        # Development Mode (nov-2024). La popularidad/géneros se obtienen
+        # de Last.fm (paso anterior).
 
         db.commit()
 

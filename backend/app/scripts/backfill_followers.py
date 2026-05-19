@@ -78,18 +78,21 @@ async def main() -> int:
         updated = 0
         for idx, artist in enumerate(targets, start=1):
             data = await fetch_single_artist(access_token, artist.spotify_id)
+            if idx <= 3:
+                logger.info("RAW response for %s: %s", artist.spotify_id, data)
             if data:
-                total = (data.get("followers") or {}).get("total")
+                followers_obj = data.get("followers")
+                total = (followers_obj or {}).get("total")
+                logger.info(
+                    "[%d/%d] %s id=%s followers_obj=%s total=%s",
+                    idx, len(targets), artist.name, artist.spotify_id,
+                    followers_obj, total,
+                )
                 if total is not None:
                     artist.followers_count = total
                     if data.get("genres"):
                         artist.genres = data["genres"]
                     updated += 1
-                    if idx % 10 == 0 or idx == len(targets):
-                        logger.info(
-                            "[%d/%d] %s -> followers=%s",
-                            idx, len(targets), artist.name, total,
-                        )
             await asyncio.sleep(_SLEEP_BETWEEN_CALLS)
 
             # commit every 25 to avoid losing progress on long runs

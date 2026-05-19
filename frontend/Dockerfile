@@ -20,9 +20,6 @@ ENV HOSTNAME="0.0.0.0"
 # Copy the standalone server (self-contained, includes node_modules subset)
 COPY .next/standalone ./
 
-# Copy static assets — served by the standalone server from /app/public
-COPY public* ./public/
-
 # Copy hashed static files — these are also served by the standalone server
 # (CDN serves them via GCS, but standalone needs them as fallback)
 COPY .next/static ./.next/static

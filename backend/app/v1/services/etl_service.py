@@ -103,8 +103,10 @@ async def enrich_artists_followers(
         .all()
     )
     if not stubs:
+        logger.info("Spotify followers enrichment: no stubs with NULL followers_count")
         return 0
 
+    logger.info("Spotify followers enrichment: %d artist(s) with NULL followers_count", len(stubs))
     client = SpotifyClient(access_token=access_token)
     updated = 0
 
@@ -112,16 +114,31 @@ async def enrich_artists_followers(
     for i in range(0, len(stubs), 50):
         batch = stubs[i : i + 50]
         ids = [a.spotify_id for a in batch]
+        logger.info(
+            "Spotify followers enrichment batch %d: fetching %d artists",
+            i // 50,
+            len(ids),
+        )
         try:
             artists_data = await client.get_artists_batch(ids)
             id_to_data = {a["id"]: a for a in artists_data if a}
+            logger.info(
+                "Spotify followers enrichment batch %d: got %d responses",
+                i // 50,
+                len(id_to_data),
+            )
             for artist in batch:
                 data = id_to_data.get(artist.spotify_id)
                 if data:
-                    artist.followers_count = data.get("followers", {}).get("total")
+                    artist.followers_count = (data.get("followers") or {}).get("total")
                     updated += 1
         except Exception as exc:
-            logger.warning("Spotify batch artists fetch failed (batch %d): %s", i // 50, exc)
+            logger.warning(
+                "Spotify batch artists fetch failed (batch %d, ids=%s): %s",
+                i // 50,
+                ids[:3],  # log first 3 IDs for debugging
+                exc,
+            )
 
     logger.info("Spotify followers enrichment: %d artist(s) updated", updated)
     return updated
@@ -183,6 +200,11 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
         for a in artists_data:
             existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
             if existing:
+                # Always refresh followers/genres from top-artists response (full objects)
+                followers_total = (a.get("followers") or {}).get("total")
+                if followers_total is not None:
+                    existing.followers_count = followers_total
+                existing.genres = a.get("genres") or existing.genres
                 artists_skipped += 1
                 artist_id_map[a["id"]] = existing.artist_id
             else:

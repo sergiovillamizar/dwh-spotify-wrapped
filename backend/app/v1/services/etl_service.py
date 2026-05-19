@@ -13,6 +13,7 @@ import logging
 # Colombia Standard Time: UTC-5 (no DST)
 COT = timezone(timedelta(hours=-5))
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -29,14 +30,17 @@ _LASTFM_SLEEP = 0.25
 async def enrich_stub_artists(
     db: Session,
     settings: Settings,
-    artist_ids: set[int],
+    artist_ids: set[int],  # kept for signature compatibility; no longer used as filter
 ) -> int:
     """
-    Enrich dim_artists rows that have no genres with Last.fm data.
+    Enrich ALL dim_artists rows that have no genres with Last.fm data.
 
-    Only processes artists whose genres column is NULL or empty AND whose
-    artist_id is in the provided set (artists touched in the current ETL run).
-    Returns the number of artists successfully enriched.
+    Queries the full table for artists with genres=NULL or genres=[] AND
+    lastfm_tags=NULL (not yet enriched). Covers both stubs from the current
+    run and pre-existing stubs from earlier ETL runs.
+
+    Uses cardinality() to check for empty arrays — avoids the
+    text[]/varchar[] type mismatch that occurs with genres == [].
 
     Best-effort: any individual failure is logged and skipped.
     """
@@ -47,8 +51,9 @@ async def enrich_stub_artists(
     stubs = (
         db.query(DimArtist)
         .filter(
-            DimArtist.artist_id.in_(artist_ids),
-            (DimArtist.genres == None) | (DimArtist.genres == []),  # noqa: E711
+            (DimArtist.genres == None)  # noqa: E711
+            | (func.cardinality(DimArtist.genres) == 0),
+            DimArtist.lastfm_tags == None,  # noqa: E711 — skip already-enriched rows
         )
         .all()
     )

@@ -8,6 +8,7 @@ class TrackResponse(BaseModel):
     spotify_id: str
     name: str
     artist_id: Optional[int] = None
+    artist_name: Optional[str] = None
     album_name: Optional[str] = None
     duration_ms: Optional[int] = None
     popularity: Optional[int] = None

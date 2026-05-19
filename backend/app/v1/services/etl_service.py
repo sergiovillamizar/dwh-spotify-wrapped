@@ -27,20 +27,20 @@ logger = logging.getLogger(__name__)
 _LASTFM_SLEEP = 0.25
 
 
-async def enrich_stub_artists(
+async def enrich_all_artists(
     db: Session,
     settings: Settings,
-    artist_ids: set[int],  # kept for signature compatibility; no longer used as filter
 ) -> int:
     """
-    Enrich ALL dim_artists rows that have no genres with Last.fm data.
+    Enrich ALL dim_artists rows that have not yet been tagged by Last.fm.
 
-    Queries the full table for artists with genres=NULL or genres=[] AND
-    lastfm_tags=NULL (not yet enriched). Covers both stubs from the current
-    run and pre-existing stubs from earlier ETL runs.
+    Queries for artists where lastfm_tags IS NULL — regardless of whether they
+    already have Spotify genres. This ensures every artist gets lastfm_listeners
+    (popularity proxy) and lastfm_tags (genre tags) populated.
 
-    Uses cardinality() to check for empty arrays — avoids the
-    text[]/varchar[] type mismatch that occurs with genres == [].
+    For artists that already have Spotify genres, lastfm_tags is stored as an
+    independent column and genres is NOT overwritten — Spotify data takes priority.
+    For stubs (genres empty/null), genres is back-filled with Last.fm tags.
 
     Best-effort: any individual failure is logged and skipped.
     """
@@ -48,29 +48,27 @@ async def enrich_stub_artists(
         logger.debug("LASTFM_API_KEY not set — skipping enrichment")
         return 0
 
-    stubs = (
+    artists = (
         db.query(DimArtist)
-        .filter(
-            (DimArtist.genres == None)  # noqa: E711
-            | (func.cardinality(DimArtist.genres) == 0),
-            DimArtist.lastfm_tags == None,  # noqa: E711 — skip already-enriched rows
-        )
+        .filter(DimArtist.lastfm_tags == None)  # noqa: E711 — only un-enriched rows
         .all()
     )
 
-    if not stubs:
+    if not artists:
         return 0
 
     client = LastFmClient(api_key=settings.LASTFM_API_KEY)
     enriched = 0
 
-    for artist in stubs:
+    for artist in artists:
         info = await client.get_artist_info(artist.name)
         if info:
             if info["tags"]:
                 artist.lastfm_tags = info["tags"]
-                # Back-fill genres with Last.fm tags when Spotify had none
-                artist.genres = info["tags"]
+                # Back-fill genres only if Spotify had none
+                has_spotify_genres = artist.genres and func.cardinality(artist.genres) != 0
+                if not artist.genres or len(artist.genres) == 0:
+                    artist.genres = info["tags"]
             if info["listeners"] is not None:
                 artist.lastfm_listeners = info["listeners"]
             enriched += 1
@@ -308,11 +306,11 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                 history_new += 1
 
         # ── Last.fm enrichment ─────────────────────────────────────────────
-        # Enrich stub artists (genres=[]) that were touched this run.
+        # Enrich ALL artists not yet tagged by Last.fm — includes artists with
+        # Spotify genres so that lastfm_tags and lastfm_listeners are always populated.
         # Best-effort: failures are logged but don't fail the ETL.
-        all_artist_ids = set(artist_id_map.values())
         try:
-            enriched_count = await enrich_stub_artists(db, settings, all_artist_ids)
+            enriched_count = await enrich_all_artists(db, settings)
             logger.info("Last.fm enrichment: %d artist(s) enriched", enriched_count)
         except Exception as exc:
             logger.warning("Last.fm enrichment step failed (non-fatal): %s", exc)

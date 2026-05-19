@@ -20,3 +20,14 @@ class RecentlyPlayedResponse(BaseModel):
     items: list[HistoryItemResponse]
     total: int
     cursor_next_ms: Optional[int] = None
+
+
+class PeakHourBucket(BaseModel):
+    hour: int
+    count: int
+
+
+class PeakHourResponse(BaseModel):
+    items: list[PeakHourBucket]
+    peak_hour: Optional[int] = None
+    total_plays: int

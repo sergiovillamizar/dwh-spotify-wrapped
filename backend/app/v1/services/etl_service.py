@@ -200,11 +200,6 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
         for a in artists_data:
             existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
             if existing:
-                # Always refresh followers/genres from top-artists response (full objects)
-                followers_total = (a.get("followers") or {}).get("total")
-                if followers_total is not None:
-                    existing.followers_count = followers_total
-                existing.genres = a.get("genres") or existing.genres
                 artists_skipped += 1
                 artist_id_map[a["id"]] = existing.artist_id
             else:

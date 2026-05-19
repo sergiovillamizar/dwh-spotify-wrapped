@@ -8,18 +8,15 @@ Author:   Didier
 
 from datetime import datetime
 
-import logging
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
-logger = logging.getLogger(__name__)
 
 from app.core.config import Settings, get_settings
 from app.core.database import DimArtist, DimUser, get_db
 from app.core.spotify_client import SpotifyClient
 from app.v1.dependencies import get_current_user
 from app.v1.schemas.artists import ArtistResponse, TopArtistsResponse
+from app.v1.services.etl_service import maybe_refresh_token
 
 router = APIRouter(prefix="/artists", tags=["artists"])
 
@@ -31,33 +28,28 @@ async def get_top_artists(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> TopArtistsResponse:
-    client = SpotifyClient(access_token=current_user.spotify_access_token)
+    """
+    Top artists del usuario en Spotify.
+
+    Nota: `followers`, `genres` y `popularity` ya NO vienen de Spotify
+    (deprecación nov-2024 para apps en Development Mode). La popularidad y
+    los géneros se completan vía Last.fm en el ETL (`enrich_all_artists`).
+    """
+    access_token = await maybe_refresh_token(current_user, db, settings)
+    client = SpotifyClient(access_token=access_token)
     raw = await client.get_top_artists(time_range=time_range, limit=50)
     artists: list[DimArtist] = []
     for a in raw.get("items", []):
-        followers_raw = a.get("followers")
-        followers_total = (followers_raw or {}).get("total")
-        logger.info(
-            "Spotify artist %r — followers_raw=%s followers_total=%s",
-            a.get("name"), followers_raw, followers_total,
-        )
         existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
         if not existing:
             existing = DimArtist(
                 spotify_id=a["id"],
                 name=a["name"],
-                popularity=a.get("popularity"),
-                followers_count=followers_total,
                 genres=a.get("genres") or [],
                 loaded_at=datetime.utcnow(),
             )
             db.add(existing)
             db.flush()
-        else:
-            # Enrich stub records that were created without popularity data
-            existing.popularity = a.get("popularity")
-            existing.followers_count = followers_total
-            existing.genres = a.get("genres") or existing.genres
         artists.append(existing)
     db.commit()
     return TopArtistsResponse(items=artists, total=len(artists))

@@ -137,6 +137,28 @@ class SpotifyClient:
             response.raise_for_status()
             return response.json()
 
+    async def get_artists_batch(self, spotify_ids: list[str]) -> list[dict]:
+        """
+        Fetch up to 50 artists in a single request using GET /artists?ids=...
+
+        Returns the list of artist objects (may contain nulls for not-found IDs).
+        Used to back-fill followers_count on stub records created from recently_played.
+
+        Args:
+            spotify_ids: List of Spotify artist IDs (max 50 per call).
+        """
+        if not spotify_ids:
+            return []
+        params = {"ids": ",".join(spotify_ids[:50])}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.BASE_URL}/artists",
+                headers=self._auth_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json().get("artists", [])
+
     async def get_recently_played(
         self,
         limit: int = 50,

@@ -29,15 +29,16 @@ _LASTFM_SLEEP = 0.25
 async def enrich_stub_artists(
     db: Session,
     settings: Settings,
-    artist_ids: set[int],
+    artist_ids: set[int],  # kept for signature compatibility; no longer used as filter
 ) -> int:
     """
-    Enrich dim_artists rows that have no genres with Last.fm data.
+    Enrich ALL dim_artists rows that have no genres with Last.fm data.
 
-    Only processes artists whose genres column is NULL or empty AND whose
-    artist_id is in the provided set (artists touched in the current ETL run).
+    Queries the entire table for artists with genres=NULL or genres=[] AND
+    lastfm_tags=NULL (not yet enriched). This catches both stubs created in
+    the current run and pre-existing stubs from earlier ETL runs.
+
     Returns the number of artists successfully enriched.
-
     Best-effort: any individual failure is logged and skipped.
     """
     if not settings.LASTFM_API_KEY:
@@ -47,8 +48,8 @@ async def enrich_stub_artists(
     stubs = (
         db.query(DimArtist)
         .filter(
-            DimArtist.artist_id.in_(artist_ids),
             (DimArtist.genres == None) | (DimArtist.genres == []),  # noqa: E711
+            DimArtist.lastfm_tags == None,  # noqa: E711 — skip already-enriched rows
         )
         .all()
     )

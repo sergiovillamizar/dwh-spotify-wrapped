@@ -17,7 +17,6 @@ substitutions:
   _AR_REPO: spotify-wrapped
   _SERVICE: frontend
   _VPC_CONNECTOR: spotify-vpc-connector
-  _FRONTEND_SA: sa-cloudrun-frontend@$PROJECT_ID.iam.gserviceaccount.com
   _STATIC_BUCKET: spotify-wrapped-static
   _URL_MAP: spotify-wrapped-url-map
 
@@ -138,7 +137,7 @@ steps:
       - --vpc-connector=${_VPC_CONNECTOR}
       - --vpc-egress=private-ranges-only
       - --set-secrets=SPOTIFY_CLIENT_SECRET=spotify-client-secret:latest,JWT_SECRET=jwt-secret:latest
-      - --service-account=${_FRONTEND_SA}
+      - --service-account=sa-cloudrun-frontend@$PROJECT_ID.iam.gserviceaccount.com
       - --allow-unauthenticated
       - --min-instances=0
       - --max-instances=3

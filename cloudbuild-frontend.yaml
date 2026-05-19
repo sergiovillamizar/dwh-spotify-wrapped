@@ -15,10 +15,10 @@ availableSecrets:
 substitutions:
   _REGION: us-central1
   _AR_REPO: spotify-wrapped
-  _SERVICE: frontend
+  _SERVICE: spotify-frontend
   _VPC_CONNECTOR: spotify-vpc-connector
   _STATIC_BUCKET: spotify-wrapped-static
-  _URL_MAP: spotify-wrapped-url-map
+  _URL_MAP: lb-url-map
 
 steps:
   # ── Step 1: Ensure Artifact Registry repo exists ─────────────────────────

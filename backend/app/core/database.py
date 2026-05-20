@@ -93,6 +93,8 @@ class DimTrack(Base):
     duration_ms = Column(Integer)
     popularity = Column(Integer)
     explicit = Column(Boolean)
+    lastfm_listeners = Column(Integer)   # total listeners — popularity proxy
+    lastfm_playcount = Column(Integer)   # total play count from Last.fm
     loaded_at = Column(DateTime)
 
 

@@ -16,6 +16,7 @@ from app.core.database import DimArtist, DimTrack, DimUser, get_db
 from app.core.spotify_client import SpotifyClient
 from app.v1.dependencies import get_current_user
 from app.v1.schemas.tracks import TopTracksResponse, TrackResponse
+from app.v1.services.etl_service import maybe_refresh_token
 
 router = APIRouter(prefix="/tracks", tags=["tracks"])
 
@@ -27,7 +28,8 @@ async def get_top_tracks(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> TopTracksResponse:
-    client = SpotifyClient(access_token=current_user.spotify_access_token)
+    access_token = await maybe_refresh_token(current_user, db, settings)
+    client = SpotifyClient(access_token=access_token)
     raw = await client.get_top_tracks(time_range=time_range, limit=50)
     tracks: list[DimTrack] = []
     for t in raw.get("items", []):

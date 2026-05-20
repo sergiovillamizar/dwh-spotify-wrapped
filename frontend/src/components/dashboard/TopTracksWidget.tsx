@@ -6,7 +6,7 @@ import styles from "@/app/dashboard/dashboard.module.css";
 import { WidgetPlaceholder } from "@/components/dashboard/WidgetPlaceholder";
 import { WidgetState } from "@/components/dashboard/WidgetState";
 import { apiFetch, ApiError } from "@/lib/api";
-import { formatDurationMs, profileInitials } from "@/lib/spotify";
+import { formatDurationMs, formatFollowers, profileInitials } from "@/lib/spotify";
 import type { TopTracksResponse } from "@/types/track";
 
 const TOP_N = 5;
@@ -68,26 +68,40 @@ export function TopTracksWidget() {
 
   return (
     <ol className={styles.trackList}>
-      {state.tracks.map((track, index) => (
-        <li key={track.spotify_id} className={styles.trackRow}>
-          <span className={styles.trackRank}>{index + 1}</span>
-          <div className={styles.trackAvatar} aria-hidden>
-            {profileInitials(track.name)}
-          </div>
-          <div className={styles.trackMeta}>
-            <span className={styles.trackName}>{track.name}</span>
-            <span className={styles.trackArtist}>
-              {track.artist_name?.trim() || "Unknown artist"}
+      {state.tracks.map((track, index) => {
+        const { lastfm_playcount, lastfm_listeners } = track;
+        let lastfmLabel: string | null = null;
+        if (lastfm_playcount != null && lastfm_listeners != null) {
+          lastfmLabel = `${formatFollowers(lastfm_playcount)} scrobbles · ${formatFollowers(lastfm_listeners)} oyentes`;
+        } else if (lastfm_playcount != null) {
+          lastfmLabel = `${formatFollowers(lastfm_playcount)} scrobbles`;
+        } else if (lastfm_listeners != null) {
+          lastfmLabel = `${formatFollowers(lastfm_listeners)} oyentes`;
+        }
+        return (
+          <li key={track.spotify_id} className={styles.trackRow}>
+            <span className={styles.trackRank}>{index + 1}</span>
+            <div className={styles.trackAvatar} aria-hidden>
+              {profileInitials(track.name)}
+            </div>
+            <div className={styles.trackMeta}>
+              <span className={styles.trackName}>{track.name}</span>
+              <span className={styles.trackArtist}>
+                {track.artist_name?.trim() || "Unknown artist"}
+              </span>
+              {track.album_name ? (
+                <span className={styles.trackAlbum}>{track.album_name}</span>
+              ) : null}
+              {lastfmLabel ? (
+                <span className={styles.trackLastfm}>{lastfmLabel}</span>
+              ) : null}
+            </div>
+            <span className={styles.trackDuration}>
+              {formatDurationMs(track.duration_ms)}
             </span>
-            {track.album_name ? (
-              <span className={styles.trackAlbum}>{track.album_name}</span>
-            ) : null}
-          </div>
-          <span className={styles.trackDuration}>
-            {formatDurationMs(track.duration_ms)}
-          </span>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ol>
   );
 }

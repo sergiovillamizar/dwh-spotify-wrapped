@@ -13,6 +13,7 @@ import logging
 # Colombia Standard Time: UTC-5 (no DST)
 COT = timezone(timedelta(hours=-5))
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -26,47 +27,48 @@ logger = logging.getLogger(__name__)
 _LASTFM_SLEEP = 0.25
 
 
-async def enrich_stub_artists(
+async def enrich_all_artists(
     db: Session,
     settings: Settings,
-    artist_ids: set[int],  # kept for signature compatibility; no longer used as filter
 ) -> int:
     """
-    Enrich ALL dim_artists rows that have no genres with Last.fm data.
+    Enrich ALL dim_artists rows that have not yet been tagged by Last.fm.
 
-    Queries the entire table for artists with genres=NULL or genres=[] AND
-    lastfm_tags=NULL (not yet enriched). This catches both stubs created in
-    the current run and pre-existing stubs from earlier ETL runs.
+    Queries for artists where lastfm_tags IS NULL — regardless of whether they
+    already have Spotify genres. This ensures every artist gets lastfm_listeners
+    (popularity proxy) and lastfm_tags (genre tags) populated.
 
-    Returns the number of artists successfully enriched.
+    For artists that already have Spotify genres, lastfm_tags is stored as an
+    independent column and genres is NOT overwritten — Spotify data takes priority.
+    For stubs (genres empty/null), genres is back-filled with Last.fm tags.
+
     Best-effort: any individual failure is logged and skipped.
     """
     if not settings.LASTFM_API_KEY:
         logger.debug("LASTFM_API_KEY not set — skipping enrichment")
         return 0
 
-    stubs = (
+    artists = (
         db.query(DimArtist)
-        .filter(
-            (DimArtist.genres == None) | (DimArtist.genres == []),  # noqa: E711
-            DimArtist.lastfm_tags == None,  # noqa: E711 — skip already-enriched rows
-        )
+        .filter(DimArtist.lastfm_tags == None)  # noqa: E711 — only un-enriched rows
         .all()
     )
 
-    if not stubs:
+    if not artists:
         return 0
 
     client = LastFmClient(api_key=settings.LASTFM_API_KEY)
     enriched = 0
 
-    for artist in stubs:
+    for artist in artists:
         info = await client.get_artist_info(artist.name)
         if info:
             if info["tags"]:
                 artist.lastfm_tags = info["tags"]
-                # Back-fill genres with Last.fm tags when Spotify had none
-                artist.genres = info["tags"]
+                # Back-fill genres only if Spotify had none
+                has_spotify_genres = artist.genres and func.cardinality(artist.genres) != 0
+                if not artist.genres or len(artist.genres) == 0:
+                    artist.genres = info["tags"]
             if info["listeners"] is not None:
                 artist.lastfm_listeners = info["listeners"]
             enriched += 1
@@ -75,6 +77,61 @@ async def enrich_stub_artists(
                 artist.name,
                 info["tags"],
                 info["listeners"],
+            )
+        await asyncio.sleep(_LASTFM_SLEEP)
+
+    return enriched
+
+
+async def enrich_all_tracks(
+    db: Session,
+    settings: Settings,
+) -> int:
+    """
+    Enrich ALL dim_tracks rows that have not yet been enriched by Last.fm.
+
+    Queries for tracks where lastfm_playcount IS NULL, joins to dim_artists
+    to obtain the artist name required by the Last.fm track.getInfo endpoint,
+    and populates lastfm_listeners and lastfm_playcount.
+
+    The Spotify `popularity` column is left untouched — Spotify stopped
+    exposing track popularity for apps in Development Mode (nov-2024), so
+    Last.fm playcount/listeners act as a popularity proxy without overwriting
+    historical Spotify data.
+
+    Best-effort: any individual failure is logged and skipped.
+    """
+    if not settings.LASTFM_API_KEY:
+        logger.debug("LASTFM_API_KEY not set — skipping track enrichment")
+        return 0
+
+    tracks = (
+        db.query(DimTrack, DimArtist.name.label("artist_name"))
+        .join(DimArtist, DimTrack.artist_id == DimArtist.artist_id)
+        .filter(DimTrack.lastfm_playcount.is_(None))
+        .all()
+    )
+
+    if not tracks:
+        return 0
+
+    client = LastFmClient(api_key=settings.LASTFM_API_KEY)
+    enriched = 0
+
+    for track, artist_name in tracks:
+        info = await client.get_track_info(artist_name, track.name)
+        if info:
+            if info["listeners"] is not None:
+                track.lastfm_listeners = info["listeners"]
+            if info["playcount"] is not None:
+                track.lastfm_playcount = info["playcount"]
+            enriched += 1
+            logger.info(
+                "Enriched track %r by %r via Last.fm: listeners=%s playcount=%s",
+                track.name,
+                artist_name,
+                info["listeners"],
+                info["playcount"],
             )
         await asyncio.sleep(_LASTFM_SLEEP)
 
@@ -140,11 +197,12 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                 artists_skipped += 1
                 artist_id_map[a["id"]] = existing.artist_id
             else:
+                # NOTA: Spotify ya NO retorna followers/genres/popularity para
+                # apps en Development Mode (nov-2024). Esos campos se enriquecen
+                # vía Last.fm en enrich_all_artists().
                 new_artist = DimArtist(
                     spotify_id=a["id"],
                     name=a["name"],
-                    popularity=a.get("popularity"),
-                    followers_count=a.get("followers", {}).get("total"),
                     genres=a.get("genres") or [],
                     loaded_at=datetime.utcnow(),
                 )
@@ -304,14 +362,27 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                 history_new += 1
 
         # ── Last.fm enrichment ─────────────────────────────────────────────
-        # Enrich stub artists (genres=[]) that were touched this run.
+        # Enrich ALL artists not yet tagged by Last.fm — includes artists with
+        # Spotify genres so that lastfm_tags and lastfm_listeners are always populated.
         # Best-effort: failures are logged but don't fail the ETL.
-        all_artist_ids = set(artist_id_map.values())
         try:
-            enriched_count = await enrich_stub_artists(db, settings, all_artist_ids)
+            enriched_count = await enrich_all_artists(db, settings)
             logger.info("Last.fm enrichment: %d artist(s) enriched", enriched_count)
         except Exception as exc:
             logger.warning("Last.fm enrichment step failed (non-fatal): %s", exc)
+
+        try:
+            tracks_enriched = await enrich_all_tracks(db, settings)
+            logger.info("Last.fm track enrichment: %d track(s) enriched", tracks_enriched)
+        except Exception as exc:
+            logger.warning("Last.fm track enrichment step failed (non-fatal): %s", exc)
+
+        # NOTA: el enrichment de followers_count vía Spotify fue removido —
+        # Spotify deja de exponer followers/genres/popularity para apps en
+        # Development Mode (nov-2024). La popularidad/géneros se obtienen
+        # de Last.fm (paso anterior).
+
+        db.commit()
 
         audit.status = "success"
         audit.finished_at = datetime.utcnow()

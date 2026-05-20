@@ -229,7 +229,7 @@ resource "google_cloud_run_v2_service" "frontend" {
 
       env {
         name  = "NEXT_PUBLIC_API_URL"
-        value = "https://${var.lb_domain}/v1"
+        value = "https://${var.lb_domain}"
       }
 
       env {

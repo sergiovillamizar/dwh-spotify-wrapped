@@ -198,6 +198,137 @@
   color: var(--muted);
 }
 
+.artistTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.artistTagChip {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.peakHourBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.peakHourMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.peakHourNumber {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.peakHourCaption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.peakHourTotal {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.peakHourSparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 3rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.peakHourBar {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.peakHourBarFill {
+  width: 100%;
+  background: var(--surface-elevated);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.peakHourBarFillActive {
+  background: linear-gradient(180deg, var(--accent) 0%, #169c46 100%);
+  opacity: 1;
+}
+
+.genresList {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.genresRow {
+  display: grid;
+  grid-template-columns: 7rem 1fr 3rem;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+.genresName {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.genresBarTrack {
+  height: 0.5rem;
+  background: var(--surface-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.genresBarFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) 0%, #169c46 100%);
+}
+
+.genresCount {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
+}
+
 .trackList {
   flex: 1;
   margin: 0;

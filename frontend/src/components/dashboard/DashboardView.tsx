@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import styles from "@/app/dashboard/dashboard.module.css";
+import { GenresWidget } from "@/components/dashboard/GenresWidget";
+import { PeakHourWidget } from "@/components/dashboard/PeakHourWidget";
 import { TopArtistsWidget } from "@/components/dashboard/TopArtistsWidget";
 import { TopTracksWidget } from "@/components/dashboard/TopTracksWidget";
 import { WidgetPlaceholder } from "@/components/dashboard/WidgetPlaceholder";
@@ -28,6 +30,12 @@ function renderWidgetBody(widgetId: (typeof DASHBOARD_WIDGETS)[number]["id"]) {
   }
   if (widgetId === "top-tracks") {
     return <TopTracksWidget />;
+  }
+  if (widgetId === "peak-hour") {
+    return <PeakHourWidget />;
+  }
+  if (widgetId === "genres") {
+    return <GenresWidget />;
   }
 
   const widget = DASHBOARD_WIDGETS.find((w) => w.id === widgetId);

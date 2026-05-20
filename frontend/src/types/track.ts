@@ -9,6 +9,8 @@ export interface Track {
   duration_ms: number | null;
   popularity: number | null;
   explicit: boolean | null;
+  lastfm_listeners: number | null;
+  lastfm_playcount: number | null;
 }
 
 /** Matches backend `TopTracksResponse`. */

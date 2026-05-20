@@ -31,3 +31,13 @@ class PeakHourResponse(BaseModel):
     items: list[PeakHourBucket]
     peak_hour: Optional[int] = None
     total_plays: int
+
+
+class GenreBucket(BaseModel):
+    genre: str
+    count: int
+
+
+class GenresResponse(BaseModel):
+    items: list[GenreBucket]
+    total: int

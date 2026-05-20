@@ -83,6 +83,61 @@ async def enrich_all_artists(
     return enriched
 
 
+async def enrich_all_tracks(
+    db: Session,
+    settings: Settings,
+) -> int:
+    """
+    Enrich ALL dim_tracks rows that have not yet been enriched by Last.fm.
+
+    Queries for tracks where lastfm_playcount IS NULL, joins to dim_artists
+    to obtain the artist name required by the Last.fm track.getInfo endpoint,
+    and populates lastfm_listeners and lastfm_playcount.
+
+    The Spotify `popularity` column is left untouched — Spotify stopped
+    exposing track popularity for apps in Development Mode (nov-2024), so
+    Last.fm playcount/listeners act as a popularity proxy without overwriting
+    historical Spotify data.
+
+    Best-effort: any individual failure is logged and skipped.
+    """
+    if not settings.LASTFM_API_KEY:
+        logger.debug("LASTFM_API_KEY not set — skipping track enrichment")
+        return 0
+
+    tracks = (
+        db.query(DimTrack, DimArtist.name.label("artist_name"))
+        .join(DimArtist, DimTrack.artist_id == DimArtist.artist_id)
+        .filter(DimTrack.lastfm_playcount.is_(None))
+        .all()
+    )
+
+    if not tracks:
+        return 0
+
+    client = LastFmClient(api_key=settings.LASTFM_API_KEY)
+    enriched = 0
+
+    for track, artist_name in tracks:
+        info = await client.get_track_info(artist_name, track.name)
+        if info:
+            if info["listeners"] is not None:
+                track.lastfm_listeners = info["listeners"]
+            if info["playcount"] is not None:
+                track.lastfm_playcount = info["playcount"]
+            enriched += 1
+            logger.info(
+                "Enriched track %r by %r via Last.fm: listeners=%s playcount=%s",
+                track.name,
+                artist_name,
+                info["listeners"],
+                info["playcount"],
+            )
+        await asyncio.sleep(_LASTFM_SLEEP)
+
+    return enriched
+
+
 async def maybe_refresh_token(user: DimUser, db: Session, settings: Settings) -> str:
     if user.token_expires_at and user.token_expires_at - datetime.utcnow() < timedelta(minutes=5):
         client = SpotifyClient(access_token="")
@@ -315,6 +370,12 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
             logger.info("Last.fm enrichment: %d artist(s) enriched", enriched_count)
         except Exception as exc:
             logger.warning("Last.fm enrichment step failed (non-fatal): %s", exc)
+
+        try:
+            tracks_enriched = await enrich_all_tracks(db, settings)
+            logger.info("Last.fm track enrichment: %d track(s) enriched", tracks_enriched)
+        except Exception as exc:
+            logger.warning("Last.fm track enrichment step failed (non-fatal): %s", exc)
 
         # NOTA: el enrichment de followers_count vía Spotify fue removido —
         # Spotify deja de exponer followers/genres/popularity para apps en

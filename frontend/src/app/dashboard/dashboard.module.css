@@ -398,6 +398,14 @@
   white-space: nowrap;
 }
 
+.trackLastfm {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .trackDuration {
   flex-shrink: 0;
   font-size: 0.8125rem;

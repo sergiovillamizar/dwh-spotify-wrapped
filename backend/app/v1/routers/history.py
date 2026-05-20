@@ -10,12 +10,14 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.core.database import DimUser, FactListeningHistory, get_db
 from app.v1.dependencies import get_current_user
 from app.v1.schemas.history import (
+    GenreBucket,
+    GenresResponse,
     PeakHourBucket,
     PeakHourResponse,
     RecentlyPlayedResponse,
@@ -71,3 +73,27 @@ def get_peak_hour(
     )
 
     return PeakHourResponse(items=items, peak_hour=peak_hour, total_plays=total_plays)
+
+
+@router.get("/genres", response_model=GenresResponse)
+def get_genres(
+    limit: int = 10,
+    current_user: DimUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> GenresResponse:
+    """Return the top-N genres by play count, derived from Last.fm artist tags."""
+    sql = text(
+        """
+        SELECT genre, COUNT(*) AS plays
+        FROM dwh.fact_listening_history f
+        JOIN dwh.dim_artists a ON f.artist_id = a.artist_id
+        CROSS JOIN UNNEST(a.lastfm_tags) AS genre
+        WHERE f.user_id = :uid AND cardinality(a.lastfm_tags) > 0
+        GROUP BY genre
+        ORDER BY plays DESC
+        LIMIT :lim
+        """
+    )
+    rows = db.execute(sql, {"uid": current_user.user_id, "lim": limit}).all()
+    items = [GenreBucket(genre=row.genre, count=row.plays) for row in rows]
+    return GenresResponse(items=items, total=len(items))

@@ -52,7 +52,7 @@ def engine():
     # ARRAY columns aren't supported in SQLite — patch genres to Text
     from sqlalchemy import Text
     for col in DimArtist.__table__.columns:
-        if col.name == "genres":
+        if col.name in ("genres", "lastfm_tags"):
             col.type = Text()
 
     Base.metadata.create_all(bind=eng)

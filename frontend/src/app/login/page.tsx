@@ -28,11 +28,16 @@ export default function LoginPage() {
     setError(null);
     try {
       const res = await fetch(`${API_URL}/v1/auth/login`);
-      if (!res.ok) throw new Error(`Error ${res.status}`);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Error ${res.status}${text ? ` — ${text}` : ""}`);
+      }
       const data = (await res.json()) as { auth_url: string };
       window.location.href = data.auth_url;
-    } catch {
-      setError("No se pudo iniciar sesión. Intenta de nuevo.");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "No se pudo iniciar sesión. Intenta de nuevo.",
+      );
       setLoading(false);
     }
   }

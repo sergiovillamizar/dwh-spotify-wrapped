@@ -10,6 +10,7 @@ import { formatFollowers, profileInitials } from "@/lib/spotify";
 import type { TopArtistsResponse } from "@/types/artist";
 
 const TOP_N = 5;
+const MAX_TAGS = 3;
 const ENDPOINT = "/v1/artists/top";
 
 type LoadState =
@@ -69,7 +70,7 @@ export function TopArtistsWidget() {
   return (
     <ol className={styles.artistList}>
       {state.artists.map((artist, index) => {
-        const popularity = artist.popularity ?? 0;
+        const tags = (artist.lastfm_tags ?? []).slice(0, MAX_TAGS);
         return (
           <li key={artist.spotify_id} className={styles.artistRow}>
             <span className={styles.artistRank}>{index + 1}</span>
@@ -78,22 +79,20 @@ export function TopArtistsWidget() {
             </div>
             <div className={styles.artistMeta}>
               <span className={styles.artistName}>{artist.name}</span>
-              {artist.followers_count != null ? (
+              {artist.lastfm_listeners != null ? (
                 <span className={styles.artistFollowers}>
-                  {formatFollowers(artist.followers_count)} followers
+                  {formatFollowers(artist.lastfm_listeners)} oyentes Last.fm
                 </span>
               ) : null}
-              <div className={styles.popularityTrack}>
-                <div
-                  className={styles.popularityFill}
-                  style={{
-                    width: `${Math.min(100, Math.max(0, popularity))}%`,
-                  }}
-                />
-              </div>
-              <span className={styles.popularityLabel}>
-                Popularity {popularity}
-              </span>
+              {tags.length > 0 ? (
+                <div className={styles.artistTags}>
+                  {tags.map((tag) => (
+                    <span key={tag} className={styles.artistTagChip}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </li>
         );

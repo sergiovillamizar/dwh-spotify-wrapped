@@ -78,3 +78,61 @@ class LastFmClient:
         except httpx.HTTPError as exc:
             logger.warning("Last.fm request failed for artist %r: %s", artist_name, exc)
             return None
+
+    async def get_track_info(self, artist_name: str, track_name: str) -> dict | None:
+        """
+        Fetch track info from Last.fm.
+
+        Returns a dict with keys:
+            listeners (int | None)  — total listener count for the track
+            playcount (int | None)  — total play count for the track
+
+        Returns None if the track is not found or the request fails.
+        """
+        params = {
+            "method": "track.getInfo",
+            "artist": artist_name,
+            "track": track_name,
+            "api_key": self._api_key,
+            "format": "json",
+            "autocorrect": "1",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(LASTFM_BASE_URL, params=params)
+                response.raise_for_status()
+                data = response.json()
+
+            if "error" in data:
+                logger.debug(
+                    "Last.fm error for track %r by %r: %s",
+                    track_name,
+                    artist_name,
+                    data.get("message"),
+                )
+                return None
+
+            track_data = data.get("track", {})
+            listeners_raw = track_data.get("listeners")
+            playcount_raw = track_data.get("playcount")
+
+            try:
+                listeners = int(listeners_raw) if listeners_raw is not None else None
+            except (ValueError, TypeError):
+                listeners = None
+
+            try:
+                playcount = int(playcount_raw) if playcount_raw is not None else None
+            except (ValueError, TypeError):
+                playcount = None
+
+            return {"listeners": listeners, "playcount": playcount}
+
+        except httpx.HTTPError as exc:
+            logger.warning(
+                "Last.fm request failed for track %r by %r: %s",
+                track_name,
+                artist_name,
+                exc,
+            )
+            return None

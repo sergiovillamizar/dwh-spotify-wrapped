@@ -13,6 +13,8 @@ class TrackResponse(BaseModel):
     duration_ms: Optional[int] = None
     popularity: Optional[int] = None
     explicit: Optional[bool] = None
+    lastfm_listeners: Optional[int] = None
+    lastfm_playcount: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

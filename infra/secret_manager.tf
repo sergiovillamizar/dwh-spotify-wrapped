@@ -29,8 +29,10 @@ resource "google_secret_manager_secret" "spotify_client_secret" {
 
 # ---------------------------------------------------------------------------
 # Database Password
-# Set real value with:
-#   echo -n "<password>" | gcloud secrets versions add db-password --data-file=-
+# Managed by Terraform: random_password (cloud_sql.tf) generates the value,
+# google_secret_manager_secret_version pushes it here so Cloud Run can read
+# it via version "latest".  After terraform apply, deploy a new Cloud Run
+# revision to pick up the new version.
 # ---------------------------------------------------------------------------
 resource "google_secret_manager_secret" "db_password" {
   secret_id = "db-password"
@@ -44,6 +46,11 @@ resource "google_secret_manager_secret" "db_password" {
     environment = var.environment
     managed_by  = "terraform"
   }
+}
+
+resource "google_secret_manager_secret_version" "db_password" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = random_password.db_password.result
 }
 
 # ---------------------------------------------------------------------------

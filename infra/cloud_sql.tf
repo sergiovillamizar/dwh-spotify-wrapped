@@ -67,3 +67,21 @@ resource "google_sql_database_instance" "postgres" {
     ignore_changes = [settings[0].disk_size]
   }
 }
+
+# ---------------------------------------------------------------------------
+# Random DB password and Cloud SQL user
+# The password is written to Secret Manager (secret_manager.tf) so Cloud Run
+# can access it via version "latest".  The password changes on every
+# terraform apply — after applying, deploy a new Cloud Run revision so the
+# backend picks up the new secret version.
+# ---------------------------------------------------------------------------
+resource "random_password" "db_password" {
+  length  = 24
+  special = false
+}
+
+resource "google_sql_user" "postgres" {
+  instance = google_sql_database_instance.postgres.name
+  name     = "postgres"
+  password = random_password.db_password.result
+}

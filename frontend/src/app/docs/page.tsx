@@ -84,7 +84,8 @@ function DocsPageContent() {
       <Navbar
         schemaTitle={schemaMeta.title}
         schemaVersion={schemaMeta.version}
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+        sidebarOpen={sidebarOpen}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -99,27 +100,30 @@ function DocsPageContent() {
             onSelectTag={handleSelectTag}
             onSelectEndpoint={handleSelectEndpoint}
             isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           />
         )}
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-8 min-w-0">
           {loading ? (
-            <div className="space-y-4 max-w-3xl">
-              <div className="skeleton-pulse h-8 w-48 rounded-lg mb-6" />
+            <div className="space-y-4 max-w-3xl mx-auto">
+              <div className="skeleton-pulse h-7 sm:h-8 w-40 sm:w-48 rounded-lg mb-4 sm:mb-6" />
               {Array.from({ length: 4 }).map((_, i) => (
                 <EndpointCardSkeleton key={i} />
               ))}
             </div>
           ) : error ? (
-            <EmptyState
-              icon="⚠️"
-              title="Failed to load API schema"
-              description={error}
-              action={{
-                label: "Retry",
-                onClick: () => window.location.reload(),
-              }}
-            />
+            <div className="max-w-lg mx-auto pt-8 sm:pt-16">
+              <EmptyState
+                icon="⚠️"
+                title="Failed to load API schema"
+                description={error}
+                action={{
+                  label: "Retry",
+                  onClick: () => window.location.reload(),
+                }}
+              />
+            </div>
           ) : activeGroup ? (
             <div className="max-w-3xl mx-auto">
               <EndpointList

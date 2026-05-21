@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import styles from "@/app/profile/profile.module.css";
 import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { getToken, isTokenExpired } from "@/lib/auth";
 import {
   accountLabel,

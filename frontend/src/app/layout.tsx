@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import "@/styles/tailwind.css";
+import { Providers } from "@/providers/Providers";
 
 export const metadata: Metadata = {
   title: "Mi Spotify Wrapped",
@@ -11,8 +12,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" className="dark" suppressHydrationWarning>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

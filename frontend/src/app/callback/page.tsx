@@ -2,19 +2,12 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setToken } from "@/lib/auth";
-
-/**
- * OAuth callback page.
- * The backend redirects here after Spotify authentication:
- *   {FRONTEND_URL}/callback?token={jwt}
- *
- * useSearchParams() must be inside a <Suspense> boundary in Next.js 14.
- */
+import { useAuth } from "@/hooks/useAuth";
 
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { setToken } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -24,7 +17,7 @@ function CallbackHandler() {
     } else {
       router.replace("/login");
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, setToken]);
 
   return null;
 }

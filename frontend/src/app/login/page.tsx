@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { getToken, isTokenExpired } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { AnimatedBackground } from "@/components/login/AnimatedBackground";
 import { Navbar } from "@/components/login/Navbar";
 import { LoginCard } from "@/components/login/LoginCard";
@@ -15,15 +15,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isAuthenticated, isHydrated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getToken();
-    if (token && !isTokenExpired(token)) {
+    if (isHydrated && isAuthenticated) {
       router.replace("/profile");
     }
-  }, [router]);
+  }, [router, isAuthenticated, isHydrated]);
 
   async function handleLogin() {
     setLoading(true);
@@ -50,16 +50,13 @@ export default function LoginPage() {
       <Navbar />
 
       <main>
-        {/* Hero + Login */}
         <section className="relative flex min-h-screen items-center justify-center px-4 pt-16">
-          {/* Background decorative gradient */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="h-[600px] w-[600px] rounded-full bg-spotify-green/5 blur-[120px]" />
           </div>
 
           <div className="relative z-10 w-full max-w-6xl mx-auto">
             <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-              {/* Hero text */}
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -106,7 +103,7 @@ export default function LoginPage() {
                   className="mt-8 flex flex-wrap items-center gap-4 justify-center lg:justify-start"
                 >
                   <div className="flex -space-x-2">
-                    {["#1DB954", "#1ED760", "#169C46"].map((color, i) => (
+                    {["#1DB954", "#1ED760", "#169C46"].map((color) => (
                       <div
                         key={color}
                         className="h-8 w-8 rounded-full border-2 border-[#0a0a0a]"
@@ -120,14 +117,12 @@ export default function LoginPage() {
                 </motion.div>
               </motion.div>
 
-              {/* Login Card */}
               <div className="flex justify-center lg:justify-end">
                 <LoginCard onLogin={handleLogin} loading={loading} error={error} />
               </div>
             </div>
           </div>
 
-          {/* Scroll indicator */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -138,15 +133,7 @@ export default function LoginPage() {
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-spotify-dark-500"
-              >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-spotify-dark-500">
                 <path d="M12 5v14M19 12l-7 7-7-7" />
               </svg>
             </motion.div>

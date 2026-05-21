@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 import { GenresWidget } from "@/components/dashboard/GenresWidget";
 import { PeakHourWidget } from "@/components/dashboard/PeakHourWidget";
@@ -13,7 +14,6 @@ import { StatsOverviewWidget } from "@/components/dashboard/StatsOverviewWidget"
 import { ActivityWidget } from "@/components/dashboard/ActivityWidget";
 import { WidgetSlot } from "@/components/dashboard/WidgetSlot";
 import { DASHBOARD_WIDGETS } from "@/components/dashboard/widgets";
-import { getToken, isTokenExpired } from "@/lib/auth";
 
 function renderWidgetBody(widgetId: string, key: number) {
   switch (widgetId) {
@@ -36,18 +36,17 @@ function renderWidgetBody(widgetId: string, key: number) {
 
 export function DashboardView() {
   const router = useRouter();
+  const { isAuthenticated, isHydrated } = useAuth();
 
   useEffect(() => {
-    const token = getToken();
-    if (!token || isTokenExpired(token)) {
+    if (isHydrated && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [router]);
+  }, [router, isAuthenticated, isHydrated]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,7 +67,6 @@ export function DashboardView() {
           </p>
         </motion.header>
 
-        {/* Widget Grid */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {DASHBOARD_WIDGETS.map((widget) => (
             <WidgetSlot
@@ -82,7 +80,6 @@ export function DashboardView() {
           ))}
         </div>
 
-        {/* Footer Nav */}
         <motion.nav
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

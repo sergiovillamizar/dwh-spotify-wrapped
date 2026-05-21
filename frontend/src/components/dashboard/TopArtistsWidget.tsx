@@ -8,6 +8,25 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { formatFollowers, profileInitials } from "@/lib/spotify";
 import type { TopArtistsResponse } from "@/types/artist";
 
+function ArtistAvatar({ artist }: { artist: { name: string; image_url: string | null } }) {
+  const [failed, setFailed] = useState(false);
+  if (artist.image_url && !failed) {
+    return (
+      <img
+        src={artist.image_url}
+        alt={artist.name}
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-spotify-green to-green-800 text-[10px] font-bold text-black">
+      {profileInitials(artist.name)}
+    </div>
+  );
+}
+
 const TOP_N = 5;
 const MAX_TAGS = 3;
 const ENDPOINT = "/v1/artists/top";
@@ -24,7 +43,7 @@ export function TopArtistsWidget() {
   const loadArtists = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<TopArtistsResponse>(ENDPOINT);
+      const data = await apiFetch<TopArtistsResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       const top = data.items.slice(0, TOP_N);
       if (top.length === 0) {
         setState({ status: "empty" });
@@ -61,9 +80,7 @@ export function TopArtistsWidget() {
             <span className="pt-1 text-xs font-bold text-spotify-gray w-4 text-right shrink-0">
               {index + 1}
             </span>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-spotify-green to-green-800 text-[10px] font-bold text-black">
-              {profileInitials(artist.name)}
-            </div>
+            <ArtistAvatar artist={artist} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-white truncate">

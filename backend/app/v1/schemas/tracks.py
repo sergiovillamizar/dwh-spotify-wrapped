@@ -10,6 +10,7 @@ class TrackResponse(BaseModel):
     artist_id: Optional[int] = None
     artist_name: Optional[str] = None
     album_name: Optional[str] = None
+    album_image_url: Optional[str] = None
     duration_ms: Optional[int] = None
     popularity: Optional[int] = None
     explicit: Optional[bool] = None

@@ -8,6 +8,25 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { formatDurationMs, formatFollowers, profileInitials } from "@/lib/spotify";
 import type { TopTracksResponse } from "@/types/track";
 
+function TrackAvatar({ track }: { track: { name: string; album_image_url: string | null } }) {
+  const [failed, setFailed] = useState(false);
+  if (track.album_image_url && !failed) {
+    return (
+      <img
+        src={track.album_image_url}
+        alt={track.name}
+        className="h-9 w-9 shrink-0 rounded-lg object-cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-700 text-[10px] font-bold text-white">
+      {profileInitials(track.name)}
+    </div>
+  );
+}
+
 const TOP_N = 5;
 const ENDPOINT = "/v1/tracks/top";
 
@@ -23,7 +42,7 @@ export function TopTracksWidget() {
   const loadTracks = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<TopTracksResponse>(ENDPOINT);
+      const data = await apiFetch<TopTracksResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       const top = data.items.slice(0, TOP_N);
       if (top.length === 0) {
         setState({ status: "empty" });
@@ -59,9 +78,7 @@ export function TopTracksWidget() {
             <span className="text-xs font-bold text-spotify-gray w-4 text-right shrink-0">
               {index + 1}
             </span>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-700 text-[10px] font-bold text-white">
-              {profileInitials(track.name)}
-            </div>
+            <TrackAvatar track={track} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-white truncate">

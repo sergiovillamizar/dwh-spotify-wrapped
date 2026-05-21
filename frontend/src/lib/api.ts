@@ -179,14 +179,14 @@ async function executeFetch<T>(
 
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError(
-        `El servidor no respondió en ${(timeout / 1000).toFixed(0)}s. Verifica que el backend esté corriendo en ${API_URL}`,
+        "El servidor no respondió a tiempo. Verifica tu conexión e intenta de nuevo.",
         0,
       );
     }
 
     if (err instanceof TypeError && err.message === "Failed to fetch") {
       throw new ApiError(
-        `No se pudo conectar con ${API_URL}. Verifica que el backend esté corriendo.`,
+        "No se pudo conectar con el servidor. Verifica que el backend esté corriendo.",
         0,
       );
     }

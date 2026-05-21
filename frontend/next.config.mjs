@@ -4,6 +4,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.nip.io" },
+      { protocol: "https", hostname: "i.scdn.co" },
     ],
   },
 };

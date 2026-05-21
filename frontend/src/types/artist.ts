@@ -6,6 +6,7 @@ export interface Artist {
   popularity: number | null;
   followers_count: number | null;
   genres: string[] | null;
+  image_url: string | null;
   lastfm_listeners: number | null;
   lastfm_tags: string[] | null;
 }

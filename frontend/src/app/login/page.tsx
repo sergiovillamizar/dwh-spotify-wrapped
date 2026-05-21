@@ -52,7 +52,7 @@ export default function LoginPage() {
       window.location.href = data.auth_url;
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
-        setError("El servidor no respondió en 20 segundos. Verifica que el backend esté corriendo en " + API_URL);
+        setError("El servidor no respondió a tiempo. Verifica tu conexión e intenta de nuevo.");
       } else {
         setError(
           e instanceof Error ? e.message : "No se pudo iniciar sesión. Intenta de nuevo.",

@@ -22,37 +22,43 @@ CREATE TABLE public.pkce_sessions (
 );
 
 CREATE TABLE dwh.dim_artists (
-    artist_id       SERIAL PRIMARY KEY,
-    spotify_id      VARCHAR(100) UNIQUE NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    popularity      INT,
-    followers_count INT,
-    genres          TEXT[],      -- array nativo de PostgreSQL
-    loaded_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    artist_id        SERIAL PRIMARY KEY,
+    spotify_id       VARCHAR(100) UNIQUE NOT NULL,
+    name             VARCHAR(255) NOT NULL,
+    popularity       INT,              -- Spotify (deprecado nov-2024 → NULL en Development Mode)
+    followers_count  INT,              -- Spotify (deprecado nov-2024 → NULL en Development Mode)
+    genres           TEXT[],           -- array nativo de PostgreSQL
+    lastfm_listeners INT,              -- 0003: oyentes Last.fm (proxy de popularidad)
+    lastfm_tags      TEXT[],           -- 0003: tags de género Last.fm
+    loaded_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE dwh.dim_tracks (
-    track_id     SERIAL PRIMARY KEY,
-    spotify_id   VARCHAR(100) UNIQUE NOT NULL,
-    name         VARCHAR(255) NOT NULL,
-    artist_id    INT REFERENCES dwh.dim_artists(artist_id),
-    album_name   VARCHAR(255),
-    duration_ms  INT,
-    popularity   INT,
-    explicit     BOOLEAN,
-    loaded_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    track_id         SERIAL PRIMARY KEY,
+    spotify_id       VARCHAR(100) UNIQUE NOT NULL,
+    name             VARCHAR(255) NOT NULL,
+    artist_id        INT REFERENCES dwh.dim_artists(artist_id),
+    album_name       VARCHAR(255),
+    duration_ms      INT,
+    popularity       INT,              -- Spotify (deprecado nov-2024 → NULL en Development Mode)
+    explicit         BOOLEAN,
+    lastfm_listeners INT,              -- 0004: oyentes Last.fm del track
+    lastfm_playcount INT,              -- 0004: scrobbles globales Last.fm del track
+    loaded_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE dwh.fact_listening_history (
-    id           SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL REFERENCES dwh.dim_users(user_id),
-    track_id     INT NOT NULL REFERENCES dwh.dim_tracks(track_id),
-    artist_id    INT NOT NULL REFERENCES dwh.dim_artists(artist_id),
-    played_at    TIMESTAMP NOT NULL,
-    hour_of_day  INT,
-    day_of_week  VARCHAR(10),
-    context_type VARCHAR(50),
-    UNIQUE (user_id, played_at)              -- garantiza idempotencia en cargas incrementales
+    id              SERIAL PRIMARY KEY,
+    user_id         INT NOT NULL REFERENCES dwh.dim_users(user_id),
+    track_id        INT NOT NULL REFERENCES dwh.dim_tracks(track_id),
+    artist_id       INT NOT NULL REFERENCES dwh.dim_artists(artist_id),
+    played_at       TIMESTAMP NOT NULL,
+    hour_of_day     INT,               -- hora UTC (original)
+    day_of_week     VARCHAR(10),       -- día UTC (original)
+    hour_of_day_cot INT,               -- 0002: hora COT (UTC-5) para análisis Colombia
+    day_of_week_cot VARCHAR(10),       -- 0002: día COT (UTC-5) para análisis Colombia
+    context_type    VARCHAR(50),
+    UNIQUE (user_id, played_at)        -- garantiza idempotencia en cargas incrementales
 );
 
 -- Tabla de auditoría: registra cada ejecución del ETL con métricas y cursores

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — Mockup | Mi Spotify Wrapped</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #0a0a0f;
+      color: #f4f4f5;
+      min-height: 100vh;
+    }
+    .page { max-width: 32rem; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    .header { margin-bottom: 1.5rem; }
+    .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #1DB954; margin-bottom: 0.25rem; }
+    .title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 2rem 1.5rem;
+      background: #16161d;
+      border: 1px solid #2a2a36;
+      border-radius: 1rem;
+    }
+    .avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 6rem;
+      height: 6rem;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1DB954 0%, #169C46 100%);
+      box-shadow: 0 8px 24px rgba(29, 185, 84, 0.25);
+    }
+    .avatar span { font-size: 1.5rem; font-weight: 700; color: #0a0a0f; letter-spacing: 0.04em; }
+    .identity { text-align: center; }
+    .identity h2 { font-size: 1.375rem; font-weight: 700; }
+    .badge-wrap { margin-top: 0.5rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f5d76e, #d4af37);
+      color: #0a0a0f;
+    }
+    .details { width: 100%; display: flex; flex-direction: column; gap: 0.75rem; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #2a2a36;
+    }
+    .row:last-child { padding-bottom: 0; border-bottom: none; }
+    .label { font-size: 0.8125rem; color: #9ca3af; }
+    .value { font-size: 0.9375rem; font-weight: 500; text-align: right; word-break: break-word; }
+    .mono { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.75rem; }
+    .footer-card { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding-top: 0.5rem; }
+    .spotify-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #0a0a0f;
+      text-decoration: none;
+      background: #1DB954;
+      border-radius: 999px;
+      transition: background 0.15s;
+    }
+    .spotify-link:hover { background: #1ed760; }
+    .synced { font-size: 0.75rem; color: #9ca3af; text-align: center; }
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #2a2a36;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .nav-links a { color: #1DB954; text-decoration: none; }
+    .nav-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <p class="eyebrow">Your account</p>
+      <h1 class="title">Profile</h1>
+    </header>
+
+    <article class="card">
+      <div class="avatar" aria-hidden>
+        <span>JP</span>
+      </div>
+
+      <div class="identity">
+        <h2>Juan Pérez</h2>
+        <div class="badge-wrap">
+          <span class="badge">Premium</span>
+        </div>
+      </div>
+
+      <dl class="details">
+        <div class="row">
+          <dt class="label">Email</dt>
+          <dd class="value">juan.perez@email.com</dd>
+        </div>
+        <div class="row">
+          <dt class="label">Country</dt>
+          <dd class="value">CO</dd>
+        </div>
+        <div class="row">
+          <dt class="label">Followers</dt>
+          <dd class="value">1,234</dd>
+        </div>
+        <div class="row">
+          <dt class="label">Spotify ID</dt>
+          <dd class="value mono">22lwq3k4h5t6z7x8c9v0b1n2m3</dd>
+        </div>
+      </dl>
+
+      <footer class="footer-card">
+        <a href="#" class="spotify-link">
+          Ver perfil en Spotify
+        </a>
+        <p class="synced">Última sincronización May 20, 2026 at 3:45 PM</p>
+      </footer>
+    </article>
+
+    <nav class="nav-links">
+      <a href="#">Dashboard</a>
+      <a href="#">Sincronización ETL</a>
+    </nav>
+  </div>
+</body>
+</html>

@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
 
 import { GenresWidget } from "@/components/dashboard/GenresWidget";
 import { PeakHourWidget } from "@/components/dashboard/PeakHourWidget";
@@ -37,6 +40,7 @@ function renderWidgetBody(widgetId: string, key: number) {
 export function DashboardView() {
   const router = useRouter();
   const { isAuthenticated, isHydrated } = useAuth();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
@@ -44,8 +48,17 @@ export function DashboardView() {
     }
   }, [router, isAuthenticated, isHydrated]);
 
+  if (!isHydrated) {
+    return <DashboardSkeleton />;
+  }
+
+  if (!isAuthenticated) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+      {!isOnline && <OfflineBanner />}
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         <motion.header
           initial={{ opacity: 0, y: -12 }}

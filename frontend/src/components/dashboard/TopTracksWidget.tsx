@@ -23,7 +23,7 @@ export function TopTracksWidget() {
   const loadTracks = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<TopTracksResponse>(ENDPOINT);
+      const data = await apiFetch<TopTracksResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       const top = data.items.slice(0, TOP_N);
       if (top.length === 0) {
         setState({ status: "empty" });

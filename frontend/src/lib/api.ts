@@ -16,6 +16,14 @@ export class ApiError extends Error {
   }
 }
 
+interface ApiOptions extends RequestInit {
+  timeout?: number;
+  apiCache?: {
+    ttl: number;
+    tags?: string[];
+  };
+}
+
 function buildHeaders(options: RequestInit): Headers {
   const headers = new Headers(options.headers);
 
@@ -50,18 +58,90 @@ async function parseErrorBody(res: Response): Promise<unknown> {
   }
 }
 
+interface CacheEntry {
+  data: unknown;
+  expiresAt: number;
+}
+
+function getCacheKey(path: string): string {
+  return `api-cache:${path}`;
+}
+
+function getFromCache<T>(path: string): T | null {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(getCacheKey(path));
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as CacheEntry;
+    if (Date.now() > entry.expiresAt) {
+      sessionStorage.removeItem(getCacheKey(path));
+      return null;
+    }
+    return entry.data as T;
+  } catch {
+    return null;
+  }
+}
+
+function setCache(path: string, data: unknown, ttl: number): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    const entry: CacheEntry = { data, expiresAt: Date.now() + ttl };
+    sessionStorage.setItem(getCacheKey(path), JSON.stringify(entry));
+  } catch {
+    // sessionStorage lleno o no disponible — ignorar
+  }
+}
+
+const inflightRequests = new Map<string, Promise<unknown>>();
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiOptions = {},
 ): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  const timeout = options.timeout ?? DEFAULT_TIMEOUT;
+  const cacheTtl = options.apiCache?.ttl ?? 0;
+
+  if (cacheTtl > 0) {
+    const cached = getFromCache<T>(path);
+    if (cached !== null) return cached;
+  }
+
+  const cacheKey = `fetch:${path}:${JSON.stringify(options.body ?? "")}`;
+
+  if (inflightRequests.has(cacheKey)) {
+    return inflightRequests.get(cacheKey) as Promise<T>;
+  }
+
+  const promise = executeFetch<T>(path, options, timeout);
+  inflightRequests.set(cacheKey, promise);
 
   try {
+    const result = await promise;
+    if (cacheTtl > 0) {
+      setCache(path, result, cacheTtl);
+    }
+    return result;
+  } finally {
+    inflightRequests.delete(cacheKey);
+  }
+}
+
+async function executeFetch<T>(
+  path: string,
+  options: ApiOptions,
+  timeout: number,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const { timeout: _timeout, apiCache: _apiCache, ...fetchOptions } = options;
+
     const res = await fetch(`${API_URL}${path}`, {
-      ...options,
+      ...fetchOptions,
       signal: controller.signal,
-      headers: buildHeaders(options),
+      headers: buildHeaders(fetchOptions),
     });
 
     if (res.status === 401) {
@@ -99,14 +179,14 @@ export async function apiFetch<T>(
 
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError(
-        "El servidor no respondió a tiempo. Verifica tu conexión e intenta de nuevo.",
+        `El servidor no respondió en ${(timeout / 1000).toFixed(0)}s. Verifica que el backend esté corriendo en ${API_URL}`,
         0,
       );
     }
 
     if (err instanceof TypeError && err.message === "Failed to fetch") {
       throw new ApiError(
-        "No se pudo conectar con el servidor. Verifica que el backend esté corriendo.",
+        `No se pudo conectar con ${API_URL}. Verifica que el backend esté corriendo.`,
         0,
       );
     }

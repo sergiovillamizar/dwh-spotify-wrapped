@@ -89,6 +89,7 @@ export default function ETLPage() {
     try {
       const result = await apiFetch<ETLRunResponse>("/v1/etl/run", {
         method: "POST",
+        timeout: 60000,
       });
       const msg =
         result.status === "success"

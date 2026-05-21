@@ -29,7 +29,7 @@ export function GenresWidget() {
   const loadGenres = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<GenresResponse>(ENDPOINT);
+      const data = await apiFetch<GenresResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       const top = data.items.slice(0, TOP_N);
       if (top.length === 0) {
         setState({ status: "empty" });

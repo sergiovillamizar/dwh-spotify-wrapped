@@ -27,7 +27,7 @@ export function PeakHourWidget() {
   const loadPeakHour = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<PeakHourResponse>(ENDPOINT);
+      const data = await apiFetch<PeakHourResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       if (data.total_plays === 0 || data.peak_hour == null) {
         setState({ status: "empty" });
         return;

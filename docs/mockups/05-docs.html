@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Docs — Mockup | Mi Spotify Wrapped</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(10,10,10,0.6);
+      backdrop-filter: blur(12px);
+    }
+    .navbar-left { display: flex; align-items: center; gap: 1rem; }
+    .navbar-left svg { width: 22px; height: 22px; }
+    .navbar-left .brand { font-weight: 700; font-size: 1rem; }
+    .navbar-left .version { font-size: 0.6875rem; color: #535353; background: rgba(255,255,255,0.05); padding: 0.15rem 0.5rem; border-radius: 4px; }
+    .navbar-right { display: flex; align-items: center; gap: 1rem; }
+    .navbar-right a { color: #b3b3b3; font-size: 0.8125rem; text-decoration: none; }
+    .hamburger { display: none; flex-direction: column; gap: 4px; cursor: pointer; background: none; border: none; padding: 4px; }
+    .hamburger span { display: block; width: 20px; height: 2px; background: #b3b3b3; border-radius: 1px; }
+
+    .layout { display: flex; flex: 1; overflow: hidden; }
+    .sidebar {
+      width: 256px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      padding: 1rem 0;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-group { margin-bottom: 0.5rem; }
+    .sidebar-tag {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #535353;
+      cursor: pointer;
+    }
+    .sidebar-tag:hover { color: #b3b3b3; }
+    .sidebar-tag.active { color: #1DB954; }
+    .sidebar-endpoint {
+      display: block;
+      padding: 0.35rem 1rem 0.35rem 1.75rem;
+      font-size: 0.8125rem;
+      color: #b3b3b3;
+      text-decoration: none;
+      border-left: 2px solid transparent;
+    }
+    .sidebar-endpoint:hover { color: #fff; background: rgba(255,255,255,0.03); }
+    .sidebar-endpoint .method {
+      display: inline-block;
+      width: 36px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #1DB954;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      min-width: 0;
+    }
+    .endpoint-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .endpoint-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .endpoint-method {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+    .method-get { color: #1DB954; background: rgba(29,185,84,0.1); }
+    .method-post { color: #3b82f6; background: rgba(59,130,246,0.1); }
+    .method-put { color: #f59e0b; background: rgba(245,158,11,0.1); }
+    .method-delete { color: #ef4444; background: rgba(239,68,68,0.1); }
+    .endpoint-path { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.9375rem; font-weight: 500; color: #fff; }
+    .endpoint-desc { font-size: 0.8125rem; color: #b3b3b3; margin-bottom: 1rem; line-height: 1.5; }
+    .endpoint-section { margin-top: 1rem; }
+    .endpoint-section h4 { font-size: 0.75rem; font-weight: 600; color: #535353; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    .param-row { display: flex; gap: 1rem; padding: 0.375rem 0; font-size: 0.8125rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .param-name { font-family: monospace; width: 120px; color: #b3b3b3; }
+    .param-type { color: #535353; width: 80px; }
+    .param-desc { flex: 1; color: #9ca3af; }
+    .code-block {
+      background: rgba(0,0,0,0.3);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: #b3b3b3;
+    }
+    .code-block .highlight { color: #1DB954; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .sidebar.open { display: block; position: fixed; top: 56px; left: 0; bottom: 0; width: 280px; background: #0a0a0a; z-index: 20; }
+      .hamburger { display: flex; }
+      .main-content { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-left">
+      <button class="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+      <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      <span class="brand">Mi Spotify Wrapped</span>
+      <span class="version">v1.0.0</span>
+    </div>
+    <div class="navbar-right">
+      <a href="#">Swagger UI</a>
+      <a href="#">ReDoc</a>
+    </div>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-tag active">Auth</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> auth/login</a>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> auth/callback</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-tag">Profile</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> profile/me</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-tag">Artists</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> artists/top</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-tag">Tracks</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> tracks/top</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-tag">History</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> history</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-tag">ETL</div>
+        <a href="#" class="sidebar-endpoint"><span class="method">GET</span> etl/status</a>
+        <a href="#" class="sidebar-endpoint"><span class="method">POST</span> etl/run</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- Auth Group -->
+      <h2 style="font-size:1.375rem;font-weight:700;margin-bottom:1.25rem;letter-spacing:-0.02em">Auth</h2>
+      <p style="font-size:0.875rem;color:#b3b3b3;margin-bottom:1.5rem;line-height:1.6">Endpoints de autenticación OAuth 2.0 con Spotify. Manejan el flujo completo de Authorization Code + PKCE.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/v1/auth/login</span>
+        </div>
+        <p class="endpoint-desc">Inicia el flujo OAuth con Spotify. Redirige al usuario a la página de autorización de Spotify.</p>
+        <div class="endpoint-section">
+          <h4>Query Parameters</h4>
+          <div class="param-row"><span class="param-name">redirect_uri</span><span class="param-type">string</span><span class="param-desc">URL de retorno tras autorización</span></div>
+        </div>
+        <div class="endpoint-section">
+          <h4>Response</h4>
+          <div class="code-block">{ <span class="highlight">"auth_url"</span>: "https://accounts.spotify.com/authorize?..." }</div>
+        </div>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/v1/auth/callback</span>
+        </div>
+        <p class="endpoint-desc">Callback OAuth. Recibe el código de autorización y retorna un JWT firmado.</p>
+        <div class="endpoint-section">
+          <h4>Query Parameters</h4>
+          <div class="param-row"><span class="param-name">code</span><span class="param-type">string</span><span class="param-desc">Código de autorización de Spotify</span></div>
+        </div>
+        <div class="endpoint-section">
+          <h4>Response</h4>
+          <div class="code-block">{ <span class="highlight">"token"</span>: "eyJhbGciOiJIUzI1NiIs..." }</div>
+        </div>
+      </div>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/v1/profile/me</span>
+        </div>
+        <p class="endpoint-desc">Obtiene el perfil del usuario autenticado desde el Data Warehouse. Requiere JWT.</p>
+        <div class="endpoint-section">
+          <h4>Headers</h4>
+          <div class="param-row"><span class="param-name">Authorization</span><span class="param-type">string</span><span class="param-desc">Bearer token JWT</span></div>
+        </div>
+        <div class="endpoint-section">
+          <h4>Response</h4>
+          <div class="code-block">{ <span class="highlight">"display_name"</span>: "Juan Pérez", <span class="highlight">"email"</span>: "juan@email.com", <span class="highlight">"product"</span>: "premium" }</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Mockup | Mi Spotify Wrapped</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .bg-glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      background: rgba(29, 185, 84, 0.06);
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Animated background grid */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: 0;
+      pointer-events: none;
+    }
+    /* Floating orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 300px; height: 300px; top: -100px; right: -100px; background: rgba(29, 185, 84, 0.08); }
+    .orb-2 { width: 250px; height: 250px; bottom: -50px; left: -50px; background: rgba(29, 185, 84, 0.05); }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      z-index: 10;
+      background: rgba(10,10,10,0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .navbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.125rem;
+    }
+    .navbar-logo svg { width: 24px; height: 24px; }
+    .navbar-links { display: flex; gap: 1.5rem; align-items: center; }
+    .navbar-links a { color: #b3b3b3; text-decoration: none; font-size: 0.875rem; }
+    .navbar-links a:hover { color: #fff; }
+    .navbar-btn {
+      background: #1DB954;
+      color: #0a0a0a;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem 4rem;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      max-width: 1200px;
+      width: 100%;
+      align-items: center;
+    }
+    .hero-left { text-align: left; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0.375rem 1rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: #b3b3b3;
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #1DB954; }
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+    .hero-title .gradient { background: linear-gradient(135deg, #1DB954, #1ed760); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-desc {
+      margin-top: 1.5rem;
+      font-size: 1.125rem;
+      color: #b3b3b3;
+      line-height: 1.6;
+      max-width: 440px;
+    }
+    .hero-users {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+    .hero-users .avatars { display: flex; }
+    .hero-users .avatars div { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #0a0a0a; margin-left: -8px; }
+    .hero-users .avatars div:first-child { margin-left: 0; }
+    .hero-users span { font-size: 0.75rem; color: #b3b3b3; }
+
+    .login-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+      border-radius: 1.25rem;
+      padding: 2.5rem;
+      max-width: 400px;
+      width: 100%;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .login-card .icon {
+      width: 56px; height: 56px;
+      background: rgba(29, 185, 84, 0.1);
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .login-card .icon svg { width: 28px; height: 28px; stroke: #1DB954; }
+    .login-card h2 { font-size: 1.375rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .login-card p { font-size: 0.875rem; color: #b3b3b3; line-height: 1.5; margin-bottom: 1.5rem; }
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.875rem;
+      background: #1DB954;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-btn:hover { background: #1ed760; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-btn svg { width: 20px; height: 20px; }
+    .login-error {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 0.75rem;
+      font-size: 0.8125rem;
+      color: #fca5a5;
+    }
+    .login-footer { margin-top: 1.5rem; font-size: 0.75rem; color: #535353; }
+
+    .features-section {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .features-section h2 { font-size: 1.75rem; font-weight: 700; text-align: center; margin-bottom: 3rem; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      text-align: left;
+    }
+    .feature-card .f-icon { width: 40px; height: 40px; border-radius: 0.75rem; background: rgba(29,185,84,0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+    .feature-card .f-icon svg { width: 20px; height: 20px; stroke: #1DB954; }
+    .feature-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.375rem; }
+    .feature-card p { font-size: 0.8125rem; color: #b3b3b3; line-height: 1.5; }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.75rem;
+      color: #535353;
+    }
+
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .hero-title { font-size: 2.25rem; }
+      .hero-desc { font-size: 1rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .navbar { padding: 0.75rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <nav class="navbar">
+    <div class="navbar-logo">
+      <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      Spotify Wrapped
+    </div>
+    <div class="navbar-links">
+      <a href="#">Features</a>
+      <a href="#">About</a>
+      <button class="navbar-btn">Login</button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-left">
+          <div class="hero-badge"><span></span> Data Warehouse Personal</div>
+          <h1 class="hero-title">
+            Tu historia musical<br>
+            <span class="gradient">en datos</span>
+          </h1>
+          <p class="hero-desc">Conecta tu cuenta de Spotify y descubre analíticas profundas de tus hábitos de escucha, potenciadas por un DWH en la nube.</p>
+          <div class="hero-users">
+            <div class="avatars">
+              <div style="background:#1DB954"></div>
+              <div style="background:#1ed760"></div>
+              <div style="background:#169C46"></div>
+            </div>
+            <span>+100 canciones analizadas</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="login-card">
+            <div class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </div>
+            <h2>Conectar con Spotify</h2>
+            <p>Inicia sesión con tu cuenta de Spotify para acceder a tus estadísticas personalizadas.</p>
+            <button class="login-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+              Continuar con Spotify
+            </button>
+            <p class="login-footer">Al continuar, aceptas compartir tus datos de escucha de Spotify.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <h2>¿Qué obtendrás?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-6"/></svg></div>
+          <h3>Estadísticas detalladas</h3>
+          <p>Analiza tus géneros, artistas y canciones más escuchadas con gráficos interactivos.</p>
+        </div>
+        <div class="feature-card">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Historial completo</h3>
+          <p>Todo tu historial de escucha sincronizado y almacenado en un Data Warehouse dedicado.</p>
+        </div>
+        <div class="feature-card">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115.36-6.36L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15.36 6.36L3 16"/></svg></div>
+          <h3>Actualización ETL</h3>
+          <p>Sincroniza tus datos cuando quieras y monitorea el proceso de extracción y transformación.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Mi Spotify Wrapped — Proyecto académico Bases de Datos II · Universidad de Pamplona</p>
+  </footer>
+</body>
+</html>

@@ -21,6 +21,17 @@ key.json
 .vscode/
 .idea/
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+
 # Cloud Shell / Gemini
 .gemini/
 .codeoss/

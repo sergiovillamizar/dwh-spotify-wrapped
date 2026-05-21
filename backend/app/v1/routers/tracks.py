@@ -33,11 +33,17 @@ async def get_top_tracks(
     raw = await client.get_top_tracks(time_range=time_range, limit=50)
     tracks: list[DimTrack] = []
     for t in raw.get("items", []):
+        album_data = t.get("album", {})
+        album_images = album_data.get("images") or []
+        album_image_url = album_images[0]["url"] if album_images else None
+
         existing = db.query(DimTrack).filter(DimTrack.spotify_id == t["id"]).first()
         if existing:
             # Enrich stub records that were created without popularity data
             existing.popularity = t.get("popularity")
-            existing.album_name = t.get("album", {}).get("name") or existing.album_name
+            existing.album_name = album_data.get("name") or existing.album_name
+            if album_image_url and existing.album_image_url != album_image_url:
+                existing.album_image_url = album_image_url
         else:
             primary_artist: dict = t["artists"][0] if t.get("artists") else {}
             art_fk: int | None = None
@@ -64,7 +70,8 @@ async def get_top_tracks(
                 spotify_id=t["id"],
                 name=t["name"],
                 artist_id=art_fk,
-                album_name=t.get("album", {}).get("name"),
+                album_name=album_data.get("name"),
+                album_image_url=album_image_url,
                 duration_ms=t.get("duration_ms"),
                 popularity=t.get("popularity"),
                 explicit=t.get("explicit", False),

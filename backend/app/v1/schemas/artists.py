@@ -10,6 +10,7 @@ class ArtistResponse(BaseModel):
     popularity: Optional[int] = None
     followers_count: Optional[int] = None
     genres: Optional[list[str]] = None
+    image_url: Optional[str] = None
     lastfm_listeners: Optional[int] = None
     lastfm_tags: Optional[list[str]] = None
 

@@ -27,7 +27,7 @@ export function ActivityWidget() {
   const loadData = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const data = await apiFetch<PeakHourResponse>(ENDPOINT);
+      const data = await apiFetch<PeakHourResponse>(ENDPOINT, { apiCache: { ttl: 60000 } });
       if (data.total_plays === 0) {
         setState({ status: "empty" });
         return;

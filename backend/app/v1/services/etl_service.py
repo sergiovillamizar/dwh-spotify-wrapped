@@ -66,7 +66,6 @@ async def enrich_all_artists(
             if info["tags"]:
                 artist.lastfm_tags = info["tags"]
                 # Back-fill genres only if Spotify had none
-                has_spotify_genres = artist.genres and func.cardinality(artist.genres) != 0
                 if not artist.genres or len(artist.genres) == 0:
                     artist.genres = info["tags"]
             if info["listeners"] is not None:
@@ -200,10 +199,13 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                 # NOTA: Spotify ya NO retorna followers/genres/popularity para
                 # apps en Development Mode (nov-2024). Esos campos se enriquecen
                 # vía Last.fm en enrich_all_artists().
+                artist_images = a.get("images") or []
+                artist_image_url = artist_images[0]["url"] if artist_images else None
                 new_artist = DimArtist(
                     spotify_id=a["id"],
                     name=a["name"],
                     genres=a.get("genres") or [],
+                    image_url=artist_image_url,
                     loaded_at=datetime.utcnow(),
                 )
                 db.add(new_artist)
@@ -243,11 +245,15 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                         art_fk = stub.artist_id
                         artist_id_map[primary_artist["id"]] = art_fk
 
+                album_data = t.get("album", {})
+                album_images = album_data.get("images") or []
+                album_image_url = album_images[0]["url"] if album_images else None
                 new_track = DimTrack(
                     spotify_id=t["id"],
                     name=t["name"],
                     artist_id=art_fk,
-                    album_name=t.get("album", {}).get("name"),
+                    album_name=album_data.get("name"),
+                    album_image_url=album_image_url,
                     duration_ms=t.get("duration_ms"),
                     popularity=t.get("popularity"),
                     explicit=t.get("explicit", False),
@@ -306,11 +312,15 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                             art_fk = stub.artist_id
                             artist_id_map[primary_artist["id"]] = art_fk
 
+                    stub_album_raw = track_raw.get("album", {})
+                    stub_album_images = stub_album_raw.get("images") or []
+                    stub_album_image_url = stub_album_images[0]["url"] if stub_album_images else None
                     stub_track = DimTrack(
                         spotify_id=track_spotify_id,
                         name=track_raw.get("name", "Unknown"),
                         artist_id=art_fk,
-                        album_name=track_raw.get("album", {}).get("name"),
+                        album_name=stub_album_raw.get("name"),
+                        album_image_url=stub_album_image_url,
                         duration_ms=track_raw.get("duration_ms"),
                         popularity=track_raw.get("popularity"),
                         explicit=track_raw.get("explicit", False),

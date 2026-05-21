@@ -3,7 +3,7 @@ import { clearToken, getToken } from "@/lib/auth";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const DEFAULT_TIMEOUT = 15000;
+const DEFAULT_TIMEOUT = 30000;
 
 export class ApiError extends Error {
   constructor(

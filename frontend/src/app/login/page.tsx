@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(`${API_URL}/v1/auth/login`, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
       window.location.href = data.auth_url;
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
-        setError("El servidor no respondió a tiempo. Verifica que el backend esté corriendo.");
+        setError("El servidor no respondió en 20 segundos. Verifica que el backend esté corriendo en " + API_URL);
       } else {
         setError(
           e instanceof Error ? e.message : "No se pudo iniciar sesión. Intenta de nuevo.",

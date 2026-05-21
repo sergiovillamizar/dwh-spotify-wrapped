@@ -42,6 +42,22 @@ const sidebarVariants = {
   },
 };
 
+const subItemVariants = {
+  hidden: { opacity: 0, x: -12, height: 0 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    height: "auto",
+    transition: { delay: i * 0.03, duration: 0.2, ease: [0.21, 0.47, 0.32, 0.98] as const },
+  }),
+};
+
+const tagButtonVariants = {
+  idle: { scale: 1 },
+  hover: { scale: 1.01, transition: { duration: 0.15 } },
+  tap: { scale: 0.98 },
+};
+
 export function Sidebar({
   groups,
   activeTag,
@@ -50,7 +66,6 @@ export function Sidebar({
   isOpen,
   onClose,
 }: SidebarProps) {
-  // Close on Escape key
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape" && isOpen) onClose();
@@ -59,7 +74,6 @@ export function Sidebar({
     return () => window.removeEventListener("keydown", handleKey);
   }, [isOpen, onClose]);
 
-  // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -78,7 +92,11 @@ export function Sidebar({
 
         return (
           <div key={group.tag}>
-            <button
+            <motion.button
+              variants={tagButtonVariants}
+              initial="idle"
+              whileHover="hover"
+              whileTap="tap"
               onClick={() => onSelectTag(group.tag)}
               className={cn(
                 "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
@@ -92,38 +110,53 @@ export function Sidebar({
               <span className="ml-auto text-[11px] text-spotify-dark-500">
                 {group.endpoints.length}
               </span>
-            </button>
+            </motion.button>
 
-            {isActive && (
-              <div className="mt-1 ml-6 space-y-0.5 overflow-hidden">
-                {group.endpoints.map((ep) => {
-                  const endpointKey = `${ep.method}-${ep.path}`;
-                  return (
-                    <button
-                      key={endpointKey}
-                      onClick={() => onSelectEndpoint(group.tag, endpointKey)}
-                      className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs transition-all duration-150 hover:bg-glass-hover group"
-                    >
-                      <span
-                        className={cn(
-                          "text-[10px] font-bold uppercase w-10 shrink-0",
-                          ep.method === "get" && "text-emerald-500",
-                          ep.method === "post" && "text-blue-500",
-                          ep.method === "put" && "text-amber-500",
-                          ep.method === "delete" && "text-red-500",
-                          ep.method === "patch" && "text-purple-500",
-                        )}
-                      >
-                        {ep.method}
-                      </span>
-                      <span className="text-spotify-gray group-hover:text-white truncate transition-colors text-left">
-                        {ep.path}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {isActive && (
+                <motion.div
+                  key="sub-items"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: [0.21, 0.47, 0.32, 0.98] as const }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-1 ml-6 space-y-0.5">
+                    {group.endpoints.map((ep, i) => {
+                      const endpointKey = `${ep.method}-${ep.path}`;
+                      return (
+                        <motion.button
+                          key={endpointKey}
+                          custom={i}
+                          variants={subItemVariants}
+                          initial="hidden"
+                          animate="visible"
+                          onClick={() => onSelectEndpoint(group.tag, endpointKey)}
+                          className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs transition-all duration-150 hover:bg-glass-hover group"
+                        >
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase w-10 shrink-0",
+                              ep.method === "get" && "text-emerald-500",
+                              ep.method === "post" && "text-blue-500",
+                              ep.method === "put" && "text-amber-500",
+                              ep.method === "delete" && "text-red-500",
+                              ep.method === "patch" && "text-purple-500",
+                            )}
+                          >
+                            {ep.method}
+                          </span>
+                          <span className="text-spotify-gray group-hover:text-white truncate transition-colors text-left">
+                            {ep.path}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}
@@ -132,7 +165,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -149,7 +181,6 @@ export function Sidebar({
         )}
       </AnimatePresence>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {isOpen && (
           <motion.aside
@@ -162,10 +193,11 @@ export function Sidebar({
             role="navigation"
             aria-label="API documentation navigation"
           >
-            {/* Mobile header */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 h-16 border-b border-glass-border bg-[#0d0d0d]">
               <span className="text-sm font-semibold text-white">API Endpoints</span>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={onClose}
                 className="p-2 -mr-2 text-spotify-gray hover:text-white transition-colors rounded-lg hover:bg-glass-hover"
                 aria-label="Close sidebar"
@@ -173,14 +205,13 @@ export function Sidebar({
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </motion.button>
             </div>
             {sidebarContent}
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar (always visible) */}
       <aside className="hidden lg:block w-64 shrink-0 border-r border-glass-border bg-[#0d0d0d] overflow-y-auto">
         <div className="sticky top-0 z-10 px-4 py-3 border-b border-glass-border bg-[#0d0d0d]">
           <span className="text-xs font-semibold text-spotify-gray uppercase tracking-wider">

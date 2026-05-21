@@ -1,13 +1,13 @@
 /**
  * cloud_sql.tf
- * Cloud SQL for PostgreSQL 16 with private IP only.
+ * Cloud SQL for PostgreSQL 17 with private IP only.
  *
  * Recurso existente — creado manualmente por Sergio.
  * terraform import google_sql_database_instance.postgres dwh-spotify-wrapped/spotify-postgres
  *
  * Project:  dwh-spotify-wrapped
  * Author:   Sergio / Didier
- * Updated:  2026-05-14
+ * Updated:  2026-05-20
  */
 
 resource "google_sql_database_instance" "postgres" {
@@ -41,9 +41,8 @@ resource "google_sql_database_instance" "postgres" {
     }
 
     ip_configuration {
-      ipv4_enabled    = true   # public IP required for Colab / external EDA access via Cloud SQL Connector
+      ipv4_enabled    = false  # private IP only — security requirement
       private_network = "projects/${var.project_id}/global/networks/${var.vpc_name}"
-      # Cloud SQL Python Connector enforces IAM auth + mTLS — no raw password over internet
     }
 
     database_flags {

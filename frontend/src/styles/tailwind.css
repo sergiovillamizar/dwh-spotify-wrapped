@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #333 transparent;
+  }
+
+  body {
+    @apply bg-[#0a0a0a] text-white antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: rgba(29, 185, 84, 0.3);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-glass-border bg-glass backdrop-blur-xl;
+  }
+
+  .glass-hover {
+    @apply hover:bg-glass-hover transition-colors duration-200;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-white via-white to-spotify-green bg-clip-text text-transparent;
+  }
+
+  .gradient-border {
+    @apply relative;
+  }
+
+  .gradient-border::before {
+    content: "";
+    @apply absolute inset-0 rounded-xl bg-gradient-to-br from-spotify-green/20 via-transparent to-transparent;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    padding: 1px;
+  }
+
+  .skeleton-pulse {
+    @apply bg-gradient-to-r from-spotify-dark-700 via-spotify-dark-600 to-spotify-dark-700 bg-[length:200%_100%] animate-shimmer;
+  }
+}

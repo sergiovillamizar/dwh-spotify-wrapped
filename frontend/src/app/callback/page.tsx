@@ -42,8 +42,7 @@ export default function CallbackPage() {
         fontSize: "16px",
       }}
     >
-      Autenticando…
-      <Suspense>
+      <Suspense fallback={<p>Autenticando…</p>}>
         <CallbackHandler />
       </Suspense>
     </main>

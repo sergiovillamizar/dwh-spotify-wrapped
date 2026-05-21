@@ -37,7 +37,7 @@ def _strip_schemas(target, connection, **kwargs):
     pass
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def engine():
     """Create a single SQLite engine for the entire test session."""
     eng = create_engine(
@@ -49,11 +49,13 @@ def engine():
     for table in Base.metadata.tables.values():
         table.schema = None
 
-    # ARRAY columns aren't supported in SQLite — patch genres to Text
-    from sqlalchemy import Text
+    # ARRAY(String) columns aren't supported in SQLite — patch to JSON
+    # SQLAlchemy's JSON type stores Python lists as JSON text in SQLite,
+    # and transparently deserializes them back to lists on read.
+    from sqlalchemy import JSON
     for col in DimArtist.__table__.columns:
         if col.name in ("genres", "lastfm_tags"):
-            col.type = Text()
+            col.type = JSON()
 
     Base.metadata.create_all(bind=eng)
     yield eng

@@ -14,7 +14,7 @@ from app.v1.services.auth_service import decode_jwt
 
 
 def get_current_user(
-    authorization: str = Header(...),
+    authorization: str = Header(default=""),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> DimUser:
@@ -22,6 +22,9 @@ def get_current_user(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token",
     )
+
+    if not authorization:
+        raise credentials_exception
 
     parts = authorization.split(" ")
     if len(parts) != 2 or parts[0].lower() != "bearer":

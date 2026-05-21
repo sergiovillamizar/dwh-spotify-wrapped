@@ -27,10 +27,11 @@ Proyecto integrador de bases de datos: pipeline ETL completo que consume la Spot
 
 | Capa | Tecnología |
 |---|---|
-| Base de datos | PostgreSQL 17 en Neon (serverless) |
-| Backend | Python + FastAPI |
+| Base de datos | PostgreSQL 17 en Cloud SQL (IP privada) |
+| Backend | Python + FastAPI (Cloud Run) |
 | Migraciones | Alembic |
-| Frontend | Next.js o React + Vite (TypeScript) |
+| Frontend | Next.js 14 App Router (TypeScript, Cloud Run) |
+| Cloud | Google Cloud Platform (VPC, LB, CDN, Secret Manager) |
 | Autenticación | Spotify Authorization Code PKCE |
 | Documentación API | OpenAPI (Swagger) auto-generado por FastAPI |
 
@@ -51,7 +52,7 @@ Referencia completa de reglas y convenciones:
    pip install -r requirements.txt
    ```
 2. Copiar `.env.example` a `.env` y completar las variables (ver sección Variables de entorno).
-3. Correr migraciones contra Neon:
+3. Correr migraciones (requiere Cloud SQL Proxy local o DATABASE_URL directa):
    ```bash
    alembic upgrade head
    ```
@@ -68,7 +69,7 @@ Referencia completa de reglas y convenciones:
    cd frontend
    npm install
    ```
-2. Copiar `.env.example` a `.env.local` (Next.js) o `.env` (Vite) y completar `NEXT_PUBLIC_API_URL` o `VITE_API_URL`.
+2. Copiar `.env.example` a `.env.local` y completar `NEXT_PUBLIC_API_URL`.
 3. Iniciar el cliente:
    ```bash
    npm run dev
@@ -87,8 +88,8 @@ SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:8000/v1/auth/callback
 
-# Neon PostgreSQL
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+# Cloud SQL (local dev via Cloud SQL Proxy)
+DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/postgres
 
 # App
 APP_NAME=Spotify DWH API
@@ -106,7 +107,7 @@ Cada entrega se documenta en la carpeta `/docs` de la raíz del proyecto. Cada a
 ```
 docs/
 ├── assets/                         ← imágenes y diagramas
-├── 00-initial-config.md            ← configuración Neon, .env, Spotify Dashboard
+├── 00-initial-config.md            ← configuración Cloud SQL, .env, Spotify Dashboard
 ├── 01-ddl-migrations.md            ← scripts DDL y migraciones Alembic
 ├── 02-backend-implementation.md    ← desarrollo del backend FastAPI
 ├── 03-frontend-implementation.md   ← desarrollo del frontend

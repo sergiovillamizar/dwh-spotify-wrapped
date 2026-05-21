@@ -1,86 +1,139 @@
-# Mi Spotify Wrapped — Personal Data Warehouse
+# 🎧 Mi Spotify Wrapped — Personal Data Warehouse
 
-Proyecto integrador de bases de datos: pipeline ETL completo que consume la Spotify Web API y construye un mini Data Warehouse personal en PostgreSQL. Cada estudiante usa su propia cuenta de Spotify como fuente de datos.
+![Backend](https://img.shields.io/badge/Backend-FastAPI%20%C2%B7%20Python%203.12-009688)
+![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%2017-336791)
+![Cloud](https://img.shields.io/badge/Cloud-Google%20Cloud%20Platform-4285F4)
+![IaC](https://img.shields.io/badge/IaC-Terraform-7B42BC)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-Cloud%20Build-34A853)
+![Auth](https://img.shields.io/badge/Auth-OAuth2%20PKCE-1DB954)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+Sistema integrador full-stack **100% cloud (GCP)** que consume la **Spotify Web API**, construye un **Data Warehouse dimensional** en Cloud SQL (PostgreSQL 17) y presenta analíticas tipo "Spotify Wrapped" vía un frontend Next.js. Cada usuario autentica con su propia cuenta de Spotify y obtiene su historia musical analizada.
+
+> **Proyecto académico** — Bases de Datos II, Universidad de Pamplona.
+
+🔗 **Demo en vivo:** https://34-54-8-28.nip.io
 
 ---
 
-## Arquitectura general
+## 📐 Arquitectura
 
-![Arquitectura del sistema](docs/assets/architecture.png)
+![Arquitectura del sistema](docs/architectures/arquitecturas-dwh.png)
+
+El sistema se despliega íntegramente en GCP detrás de un **External HTTPS Load Balancer + Cloud CDN**, con ruteo por path:
+
+| Ruta | Destino | Caché |
+|------|---------|-------|
+| `/_next/static/*` | Cloud Storage (bucket de assets) | 1 año, inmutable |
+| `/v1/*` | Cloud Run — backend FastAPI | sin caché |
+| `/*` | Cloud Run — frontend Next.js SSR | corto |
+
+El backend accede a **Cloud SQL** por **IP privada** (VPC Connector) y sale a internet (Spotify / Last.fm) vía **Cloud NAT**. Secretos en **Secret Manager**, infraestructura como código en **Terraform**, despliegue por **Cloud Build** en cada push a `main`.
 
 ---
 
-## Modelo dimensional (Galaxy Schema)
+## 🗂️ Modelo dimensional (Galaxy Schema)
 
 ![Galaxy schema DWH](docs/assets/galaxy-schema.png)
 
-- El modelo es mayormente estrella con un elemento de copo de nieve. `dim_tracks.artist_id` es una FK entre dimensiones — convierte esa relación en un elemento snowflake. Se mantiene por conveniencia de queries y ETL. En un star schema estricto, `artist_name` iría desnormalizado dentro de `dim_tracks`.
+Schema `dwh` con 6 tablas:
+
+| Tipo | Tabla | Descripción |
+|------|-------|-------------|
+| Dimensión | `dim_users` | Usuarios + tokens OAuth |
+| Dimensión | `dim_artists` | Artistas (+ `lastfm_listeners`, `lastfm_tags`) |
+| Dimensión | `dim_tracks` | Canciones (+ `lastfm_listeners`, `lastfm_playcount`) |
+| **Hecho** | `fact_listening_history` | 1 fila = 1 reproducción · `UNIQUE(user_id, played_at)` |
+| Operacional | `etl_audit` | Auditoría de cada corrida del ETL |
+| Operacional | `public.pkce_sessions` | Estado PKCE entre `/login` y `/callback` |
+
+Es **mayormente estrella con un elemento snowflake**: `dim_tracks.artist_id` es FK a `dim_artists` (relación entre dimensiones), mantenida por conveniencia de queries y ETL.
+
 ---
 
-## Flujo OAuth PKCE + ETL
+## 🔄 Flujo OAuth PKCE + ETL
 
 ![Flujo de interacción completo](docs/assets/interaction-flow.png)
 
+**Autenticación (PKCE):** `/v1/auth/login` genera `code_verifier` + `state` (guardados en `pkce_sessions`) → redirige a Spotify → `/v1/auth/callback` intercambia el code por tokens → upsert en `dim_users` → emite **JWT** → redirige al frontend.
+
+**ETL (E → T → L):**
+1. **Extract** — top artists, top tracks y recently-played (con cursor incremental `after`).
+2. **Transform** — parseo ISO 8601, derivación de hora/día en **UTC y COT** (UTC-5).
+3. **Load** — upsert idempotente (`UNIQUE(user_id, played_at)`) + auditoría en `etl_audit`.
+4. **Enriquecimiento Last.fm** — `lastfm_listeners`/`lastfm_tags` (artistas) y `lastfm_listeners`/`lastfm_playcount` (tracks).
+
+Se ejecuta on-demand (`POST /v1/etl/run`) y de forma programada (**Cloud Scheduler** nocturno → `POST /v1/etl/run-batch`, autenticado por OIDC).
+
+> ⚠️ **Nota sobre datos de Spotify:** desde noviembre 2024 Spotify dejó de exponer `followers`, `genres` y `popularity` para apps en *Development Mode*. El proyecto usa **Last.fm** como sustituto: popularidad ← `lastfm_listeners`, géneros ← `lastfm_tags`.
+
 ---
 
-## Stack tecnológico
+## 🔌 API (endpoints `/v1`)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/v1/auth/login` | Inicia OAuth PKCE |
+| GET | `/v1/auth/callback` | Intercambia code → tokens → JWT |
+| GET | `/v1/profile/me` | Perfil del usuario autenticado |
+| GET | `/v1/artists/top` | Top artistas |
+| GET | `/v1/tracks/top` | Top canciones |
+| GET | `/v1/history/recently-played` | Historial (paginación por cursor) |
+| GET | `/v1/history/peak-hour` | Distribución de escucha por hora (COT) |
+| GET | `/v1/history/genres` | Géneros dominantes (Last.fm tags) |
+| POST | `/v1/etl/run` | Ejecuta el ETL del usuario (JWT) |
+| POST | `/v1/etl/run-batch` | ETL de todos los usuarios (OIDC, Scheduler) |
+| GET | `/v1/etl/status` | Historial de corridas del ETL |
+| GET | `/v1/health` · `/v1/ready` | Liveness · Readiness (con ping a DB) |
+
+Documentación interactiva (Swagger): `https://34-54-8-28.nip.io/v1/docs`
+
+---
+
+## 🧰 Stack tecnológico
 
 | Capa | Tecnología |
-|---|---|
-| Base de datos | PostgreSQL 17 en Cloud SQL (IP privada) |
-| Backend | Python + FastAPI (Cloud Run) |
+|------|------------|
+| Base de datos | PostgreSQL 17 — Cloud SQL |
+| Backend | Python 3.12 + FastAPI — Cloud Run |
 | Migraciones | Alembic |
-| Frontend | Next.js 14 App Router (TypeScript, Cloud Run) |
-| Cloud | Google Cloud Platform (VPC, LB, CDN, Secret Manager) |
-| Autenticación | Spotify Authorization Code PKCE |
-| Documentación API | OpenAPI (Swagger) auto-generado por FastAPI |
-
-Referencia completa de reglas y convenciones:
-- Backend → `backend/docs/workshop_definitions.md`
-- Frontend → `frontend/workshops_definitions.md`
+| Frontend | Next.js 14 App Router (TypeScript) — Cloud Run |
+| Enriquecimiento | Last.fm API |
+| Cloud | GCP: VPC, Load Balancer, Cloud CDN, Cloud NAT, Secret Manager, Cloud Scheduler, Artifact Registry |
+| IaC | Terraform |
+| CI/CD | Cloud Build (triggers en `main`) |
+| Autenticación | Spotify OAuth2 Authorization Code + PKCE · JWT propio |
+| Análisis | Jupyter + pandas + seaborn (EDA en Google Colab) |
 
 ---
 
-## Implementación
+## 🚀 Desarrollo local
 
 ### Backend
-
-1. Crear entorno virtual e instalar dependencias:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. Copiar `.env.example` a `.env` y completar las variables (ver sección Variables de entorno).
-3. Correr migraciones (requiere Cloud SQL Proxy local o DATABASE_URL directa):
-   ```bash
-   alembic upgrade head
-   ```
-4. Iniciar el servidor:
-   ```bash
-   uvicorn backend.main:app --reload --port 8000
-   ```
-5. Swagger disponible en `http://127.0.0.1:8000/docs`.
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env               # completar variables
+alembic upgrade head               # requiere Cloud SQL Proxy o DATABASE_URL
+uvicorn main:app --reload --port 8000
+```
+Swagger: `http://127.0.0.1:8000/v1/docs`
 
 ### Frontend
-
-1. Instalar dependencias:
-   ```bash
-   cd frontend
-   npm install
-   ```
-2. Copiar `.env.example` a `.env.local` y completar `NEXT_PUBLIC_API_URL`.
-3. Iniciar el cliente:
-   ```bash
-   npm run dev
-   ```
-4. Abrir `http://localhost:3000`.
+```bash
+cd frontend
+npm install
+cp .env.example .env.local         # completar NEXT_PUBLIC_API_URL
+npm run dev
+```
+App: `http://localhost:3000`
 
 ---
 
-## Variables de entorno
-
-Crear un archivo `.env` en la raíz del proyecto (nunca versionar este archivo):
+## 🔑 Variables de entorno (backend)
 
 ```env
 # Spotify Developer App
@@ -88,61 +141,57 @@ SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:8000/v1/auth/callback
 
-# Cloud SQL (local dev via Cloud SQL Proxy)
+# Cloud SQL (local vía Cloud SQL Proxy)
 DATABASE_URL=postgresql://postgres:password@127.0.0.1:5432/postgres
 
 # App
-APP_NAME=Spotify DWH API
-APP_VERSION=1.0.0
-SECRET_KEY=
+SECRET_KEY=                        # firma del JWT
 FRONTEND_URL=http://localhost:3000
+
+# Last.fm (enriquecimiento)
+LASTFM_API_KEY=
+```
+
+> 🔒 Nunca se versionan secretos. En producción viven en **Secret Manager**; `gitleaks` corre en pre-commit.
+
+---
+
+## 📁 Estructura del repositorio
+
+```
+.
+├── backend/                FastAPI + Alembic + cliente Spotify/Last.fm
+│   ├── app/
+│   │   ├── core/           config, database, spotify_client, lastfm_client
+│   │   └── v1/             routers · services · schemas · dependencies
+│   ├── alembic/versions/   4 migraciones (0001–0004)
+│   ├── database/dd.sql     snapshot de referencia del esquema
+│   └── tests/
+├── frontend/               Next.js 14 (login, callback, dashboard, profile, etl)
+├── infra/                  Terraform (VPC, Cloud SQL, Cloud Run, LB, CDN, IAM, Scheduler)
+├── notebooks/              EDA (Jupyter / Colab)
+├── docs/                   documentación del proceso + diagramas
+│   └── architectures/      diagramas de arquitectura (Excalidraw + PNG)
+├── technical_answers/      respuestas a preguntas técnicas (Didier · Sergio)
+├── cloudbuild-backend.yaml
+└── cloudbuild-frontend.yaml
 ```
 
 ---
 
-## Documentación del proceso
+## 👥 Equipo
 
-Cada entrega se documenta en la carpeta `/docs` de la raíz del proyecto. Cada archivo sigue el esquema:
-
-```
-docs/
-├── assets/                         ← imágenes y diagramas
-├── 00-initial-config.md            ← configuración Cloud SQL, .env, Spotify Dashboard
-├── 01-ddl-migrations.md            ← scripts DDL y migraciones Alembic
-├── 02-backend-implementation.md    ← desarrollo del backend FastAPI
-├── 03-frontend-implementation.md   ← desarrollo del frontend
-├── 04-etl-pipeline.md              ← implementación del pipeline ETL
-└── 05-analytical-queries.md        ← consultas SQL y resultados con screenshots
-```
-
-### Estructura obligatoria de cada archivo de documentación
-
-Cada `docs/XX-nombre.md` debe contener:
-
-```markdown
-# [Título del proceso]
-
-## Qué se configuró / implementó
-Descripción breve de lo que se hizo en este paso.
-
-## Screenshots
-[Insertar capturas de pantalla del resultado]
-
-## Prompt utilizado
-Si se usó IA para generar o asistir este paso, pegar el prompt exacto aquí.
-Si no se usó ninguna técnica de IA: escribir `No se utilizó ninguna técnica de IA.`
-
-## Técnica de prompting aplicada
-Nombre de la técnica si aplica (zero-shot, few-shot, chain-of-thought, role prompting…).
-Si no aplica: `No aplica.`
-```
+| Dev | Rol | Responsabilidad |
+|-----|-----|-----------------|
+| **Didier** ([@DidierParody](https://github.com/DidierParody)) | Backend + Data | FastAPI, DWH, ETL, modelado dimensional, EDA |
+| **Sergio** ([@sergiovillamizar](https://github.com/sergiovillamizar)) | Cloud + Frontend | GCP, Terraform, CI/CD, Next.js |
 
 ---
 
-## Entregables
+## 📚 Documentación
 
-| # | Entregable | Contenido |
-|---|---|---|
-| 1 | DDL + Modelo ER | Scripts SQL ejecutables + diagrama ER justificando star schema |
-| 2 | Script ETL | Código Python con las 3 fases separadas + log de ejecución con conteo de registros |
-| 3 | Documentación `/docs` | Mínimo un archivo por fase del proyecto con screenshots y prompts |
+El proceso completo se documenta en [`docs/`](docs/). Diagramas de arquitectura editables en [`docs/architectures/`](docs/architectures/). Respuestas técnicas en [`technical_answers/`](technical_answers/).
+
+## 📄 Licencia
+
+MIT.

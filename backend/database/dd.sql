@@ -30,6 +30,7 @@ CREATE TABLE dwh.dim_artists (
     genres           TEXT[],           -- array nativo de PostgreSQL
     lastfm_listeners INT,              -- 0003: oyentes Last.fm (proxy de popularidad)
     lastfm_tags      TEXT[],           -- 0003: tags de género Last.fm
+    image_url        VARCHAR(512),     -- 0005: foto de perfil del artista (Spotify CDN)
     loaded_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,6 +45,7 @@ CREATE TABLE dwh.dim_tracks (
     explicit         BOOLEAN,
     lastfm_listeners INT,              -- 0004: oyentes Last.fm del track
     lastfm_playcount INT,              -- 0004: scrobbles globales Last.fm del track
+    album_image_url  VARCHAR(512),     -- 0005: carátula del álbum (Spotify CDN)
     loaded_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

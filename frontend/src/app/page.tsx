@@ -1,24 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, isTokenExpired } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
-/**
- * Root page — redirects to /profile if already authenticated,
- * otherwise to /login to start the Spotify OAuth flow.
- */
 export default function HomePage() {
   const router = useRouter();
+  const { isAuthenticated, isHydrated } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
-    if (token && !isTokenExpired(token)) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !isHydrated) return;
+    if (isAuthenticated) {
       router.replace("/profile");
     } else {
       router.replace("/login");
     }
-  }, [router]);
+  }, [router, isAuthenticated, isHydrated, mounted]);
 
   return null;
 }

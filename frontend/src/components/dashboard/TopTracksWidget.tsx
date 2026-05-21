@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-import styles from "@/app/dashboard/dashboard.module.css";
+import { motion } from "framer-motion";
 import { WidgetPlaceholder } from "@/components/dashboard/WidgetPlaceholder";
 import { WidgetState } from "@/components/dashboard/WidgetState";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -32,76 +31,61 @@ export function TopTracksWidget() {
       }
       setState({ status: "ready", tracks: top });
     } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : "Could not load top tracks.";
+      const message = err instanceof ApiError ? err.message : "Could not load top tracks.";
       setState({ status: "error", message });
     }
   }, []);
 
-  useEffect(() => {
-    void loadTracks();
-  }, [loadTracks]);
+  useEffect(() => { void loadTracks(); }, [loadTracks]);
 
-  if (state.status === "loading") {
-    return <WidgetPlaceholder variant="list" />;
-  }
-
-  if (state.status === "error") {
-    return (
-      <WidgetState
-        message={state.message}
-        onRetry={() => void loadTracks()}
-      />
-    );
-  }
-
-  if (state.status === "empty") {
-    return (
-      <WidgetState
-        variant="empty"
-        message="No top tracks returned yet. Sync via ETL or try again later."
-      />
-    );
-  }
+  if (state.status === "loading") return <WidgetPlaceholder variant="list" />;
+  if (state.status === "error") return <WidgetState message={state.message} onRetry={() => void loadTracks()} />;
+  if (state.status === "empty") return <WidgetState variant="empty" message="No top tracks returned yet. Sync via ETL or try again later." />;
 
   return (
-    <ol className={styles.trackList}>
+    <div className="flex flex-col gap-3">
       {state.tracks.map((track, index) => {
-        const { lastfm_playcount, lastfm_listeners } = track;
-        let lastfmLabel: string | null = null;
-        if (lastfm_playcount != null && lastfm_listeners != null) {
-          lastfmLabel = `${formatFollowers(lastfm_playcount)} scrobbles · ${formatFollowers(lastfm_listeners)} oyentes`;
-        } else if (lastfm_playcount != null) {
-          lastfmLabel = `${formatFollowers(lastfm_playcount)} scrobbles`;
-        } else if (lastfm_listeners != null) {
-          lastfmLabel = `${formatFollowers(lastfm_listeners)} oyentes`;
-        }
+        const lastfmLabel = track.lastfm_playcount != null
+          ? `${formatFollowers(track.lastfm_playcount)} scrobbles`
+          : null;
         return (
-          <li key={track.spotify_id} className={styles.trackRow}>
-            <span className={styles.trackRank}>{index + 1}</span>
-            <div className={styles.trackAvatar} aria-hidden>
+          <motion.div
+            key={track.spotify_id}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.08, duration: 0.4 }}
+            className="group flex items-center gap-3"
+          >
+            <span className="text-xs font-bold text-spotify-gray w-4 text-right shrink-0">
+              {index + 1}
+            </span>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-700 text-[10px] font-bold text-white">
               {profileInitials(track.name)}
             </div>
-            <div className={styles.trackMeta}>
-              <span className={styles.trackName}>{track.name}</span>
-              <span className={styles.trackArtist}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-white truncate">
+                  {track.name}
+                </span>
+                {track.explicit && (
+                  <span className="text-[10px] font-bold text-spotify-gray uppercase shrink-0">E</span>
+                )}
+              </div>
+              <span className="text-xs text-spotify-green truncate block">
                 {track.artist_name?.trim() || "Unknown artist"}
               </span>
-              {track.album_name ? (
-                <span className={styles.trackAlbum}>{track.album_name}</span>
-              ) : null}
-              {lastfmLabel ? (
-                <span className={styles.trackLastfm}>{lastfmLabel}</span>
-              ) : null}
+              {lastfmLabel && (
+                <span className="text-[10px] text-spotify-gray block">
+                  {lastfmLabel}
+                </span>
+              )}
             </div>
-            <span className={styles.trackDuration}>
+            <span className="text-xs font-mono font-medium text-spotify-gray shrink-0">
               {formatDurationMs(track.duration_ms)}
             </span>
-          </li>
+          </motion.div>
         );
       })}
-    </ol>
+    </div>
   );
 }

@@ -66,7 +66,6 @@ async def enrich_all_artists(
             if info["tags"]:
                 artist.lastfm_tags = info["tags"]
                 # Back-fill genres only if Spotify had none
-                has_spotify_genres = artist.genres and func.cardinality(artist.genres) != 0
                 if not artist.genres or len(artist.genres) == 0:
                     artist.genres = info["tags"]
             if info["listeners"] is not None:
@@ -313,11 +312,15 @@ async def run_etl(user: DimUser, db: Session, settings: Settings) -> ETLAudit:
                             art_fk = stub.artist_id
                             artist_id_map[primary_artist["id"]] = art_fk
 
+                    stub_album_raw = track_raw.get("album", {})
+                    stub_album_images = stub_album_raw.get("images") or []
+                    stub_album_image_url = stub_album_images[0]["url"] if stub_album_images else None
                     stub_track = DimTrack(
                         spotify_id=track_spotify_id,
                         name=track_raw.get("name", "Unknown"),
                         artist_id=art_fk,
-                        album_name=track_raw.get("album", {}).get("name"),
+                        album_name=stub_album_raw.get("name"),
+                        album_image_url=stub_album_image_url,
                         duration_ms=track_raw.get("duration_ms"),
                         popularity=track_raw.get("popularity"),
                         explicit=track_raw.get("explicit", False),

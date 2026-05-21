@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { AnimatedBackground } from "@/components/login/AnimatedBackground";
 import { Navbar } from "@/components/login/Navbar";
 import { LoginCard } from "@/components/login/LoginCard";
 import { FeaturesGrid } from "@/components/login/FeaturesGrid";
 import { DashboardPreview } from "@/components/login/DashboardPreview";
 import { Footer } from "@/components/login/Footer";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const { isAuthenticated, isHydrated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     if (isHydrated && isAuthenticated) {
@@ -28,8 +31,19 @@ export default function LoginPage() {
   async function handleLogin() {
     setLoading(true);
     setError(null);
+
+    if (!isOnline) {
+      setError("No hay conexión a internet. Verifica tu red e intenta de nuevo.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_URL}/v1/auth/login`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(`${API_URL}/v1/auth/login`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(`Error ${res.status}${text ? ` — ${text}` : ""}`);
@@ -37,15 +51,31 @@ export default function LoginPage() {
       const data = (await res.json()) as { auth_url: string };
       window.location.href = data.auth_url;
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "No se pudo iniciar sesión. Intenta de nuevo.",
-      );
+      if (e instanceof DOMException && e.name === "AbortError") {
+        setError("El servidor no respondió a tiempo. Verifica que el backend esté corriendo.");
+      } else {
+        setError(
+          e instanceof Error ? e.message : "No se pudo iniciar sesión. Intenta de nuevo.",
+        );
+      }
       setLoading(false);
     }
   }
 
+  if (!isHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-spotify-green border-t-transparent" />
+          <p className="text-sm text-spotify-gray">Cargando…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
+      {!isOnline && <OfflineBanner />}
       <AnimatedBackground />
       <Navbar />
 

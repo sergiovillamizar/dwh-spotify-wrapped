@@ -3,6 +3,8 @@ import { clearToken, getToken } from "@/lib/auth";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+const DEFAULT_TIMEOUT = 15000;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -48,41 +50,72 @@ async function parseErrorBody(res: Response): Promise<unknown> {
   }
 }
 
-/**
- * Typed fetch wrapper for the backend API.
- * Injects `Authorization: Bearer <app_token>` when a JWT is stored.
- * Redirects to `/login` on 401.
- */
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: buildHeaders(options),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
 
-  if (res.status === 401) {
-    clearToken();
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: buildHeaders(options),
+    });
+
+    if (res.status === 401) {
+      clearToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      throw new ApiError("Sesión expirada", 401);
     }
-    throw new ApiError("Sesión expirada", 401);
-  }
 
-  if (!res.ok) {
-    const body = await parseErrorBody(res);
-    throw new ApiError(`API error ${res.status}`, res.status, body);
-  }
+    if (!res.ok) {
+      const body = await parseErrorBody(res);
+      const detail = body && typeof body === "object" && "detail" in body
+        ? String((body as Record<string, unknown>).detail)
+        : "";
+      throw new ApiError(
+        detail || `Error del servidor (${res.status})`,
+        res.status,
+        body,
+      );
+    }
 
-  if (res.status === 204) {
-    return undefined as T;
-  }
+    if (res.status === 204) {
+      return undefined as T;
+    }
 
-  const contentType = res.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    return undefined as T;
-  }
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return undefined as T;
+    }
 
-  return res.json() as Promise<T>;
+    return res.json() as Promise<T>;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(
+        "El servidor no respondió a tiempo. Verifica tu conexión e intenta de nuevo.",
+        0,
+      );
+    }
+
+    if (err instanceof TypeError && err.message === "Failed to fetch") {
+      throw new ApiError(
+        "No se pudo conectar con el servidor. Verifica que el backend esté corriendo.",
+        0,
+      );
+    }
+
+    throw new ApiError(
+      err instanceof Error ? err.message : "Error de conexión inesperado",
+      0,
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

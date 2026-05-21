@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { EndpointGroup } from "@/types/openapi";
 import { fetchOpenApiSchema, groupEndpoints } from "@/services/openApiService";
 import { Navbar } from "@/components/docs/Navbar";
@@ -9,7 +9,12 @@ import { Dashboard } from "@/components/docs/Dashboard";
 import { EndpointList } from "@/components/docs/EndpointList";
 import { EndpointCardSkeleton, SidebarSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
+
+const FETCH_TIMEOUT = 10000;
 
 export default function DocsPage() {
   return (
@@ -26,42 +31,65 @@ function DocsPageContent() {
   const [activeEndpointKey, setActiveEndpointKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeout, setTimeout_] = useState(false);
   const [schemaMeta, setSchemaMeta] = useState({ title: "Loading...", version: "—" });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dashboardReady, setDashboardReady] = useState(false);
+  const isOnline = useOnlineStatus();
+  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    async function loadSchema() {
-      try {
-        setLoading(true);
-        const schema = await fetchOpenApiSchema();
-        const endpointGroups = groupEndpoints(schema);
-        setGroups(endpointGroups);
-        setSchemaMeta({
-          title: schema.info?.title ?? "API Docs",
-          version: schema.info?.version ?? "—",
-        });
-        setLoading(false);
+  const loadSchema = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setTimeout_(false);
 
-        if (endpointGroups.length > 0) {
-          const tagOrder = ["auth", "profile", "artists", "tracks", "history", "etl", "health"];
-          const firstTag = tagOrder.find((t) =>
-            endpointGroups.some((g) => g.tag.toLowerCase() === t),
-          ) ?? endpointGroups[0].tag;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-          setTimeout(() => {
+    try {
+      const schema = await fetchOpenApiSchema();
+      if (!mountedRef.current) return;
+      const endpointGroups = groupEndpoints(schema);
+      setGroups(endpointGroups);
+      setSchemaMeta({
+        title: schema.info?.title ?? "API Docs",
+        version: schema.info?.version ?? "—",
+      });
+      setLoading(false);
+
+      if (endpointGroups.length > 0) {
+        const tagOrder = ["auth", "profile", "artists", "tracks", "history", "etl", "health"];
+        const firstTag = tagOrder.find((t) =>
+          endpointGroups.some((g) => g.tag.toLowerCase() === t),
+        ) ?? endpointGroups[0].tag;
+
+        window.setTimeout(() => {
+          if (mountedRef.current) {
             setActiveTag(firstTag);
             setDashboardReady(true);
-          }, 100);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load API schema");
-        setLoading(false);
-        setDashboardReady(true);
+          }
+        }, 100);
       }
+    } catch (err) {
+      if (!mountedRef.current) return;
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setTimeout_(true);
+        setError("El servidor no respondió a tiempo. Verifica que el backend esté corriendo.");
+      } else {
+        setError(err instanceof Error ? err.message : "Error al cargar la documentación de la API");
+      }
+      setLoading(false);
+      setDashboardReady(true);
+    } finally {
+      window.clearTimeout(timeoutId);
     }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
     void loadSchema();
-  }, [addToast]);
+    return () => { mountedRef.current = false; };
+  }, [loadSchema]);
 
   const handleSelectTag = useCallback((tag: string) => {
     setActiveTag(tag === activeTag ? null : tag);
@@ -81,6 +109,7 @@ function DocsPageContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      {!isOnline && <OfflineBanner />}
       <Navbar
         schemaTitle={schemaMeta.title}
         schemaVersion={schemaMeta.version}
@@ -114,14 +143,11 @@ function DocsPageContent() {
             </div>
           ) : error ? (
             <div className="max-w-lg mx-auto pt-8 sm:pt-16">
-              <EmptyState
-                icon="⚠️"
-                title="Failed to load API schema"
-                description={error}
-                action={{
-                  label: "Retry",
-                  onClick: () => window.location.reload(),
-                }}
+              <ErrorState
+                title={timeout ? "Tiempo de espera agotado" : "Error al cargar la API"}
+                message={error}
+                onRetry={() => void loadSchema()}
+                retryLabel="Reintentar"
               />
             </div>
           ) : activeGroup ? (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import styles from "@/app/profile/profile.module.css";
 import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { getToken, isTokenExpired } from "@/lib/auth";
 import {
   accountLabel,
@@ -120,7 +121,15 @@ export function ProfileView() {
 }
 
 function ProfileLayout({ children }: { children: React.ReactNode }) {
-  return <div className={styles.page}>{children}</div>;
+  return (
+    <div className={styles.page}>
+      {children}
+      <nav style={{ display: "flex", gap: "1.25rem", marginTop: "2rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border)", fontSize: "0.875rem", fontWeight: 500 }}>
+        <a href="/dashboard" style={{ color: "var(--accent)", textDecoration: "none" }}>Dashboard</a>
+        <a href="/etl" style={{ color: "var(--accent)", textDecoration: "none" }}>Sincronización ETL</a>
+      </nav>
+    </div>
+  );
 }
 
 function DetailRow({

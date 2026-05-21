@@ -42,14 +42,22 @@ async def get_top_artists(
     for a in raw.get("items", []):
         existing = db.query(DimArtist).filter(DimArtist.spotify_id == a["id"]).first()
         if not existing:
+            artist_images = a.get("images") or []
+            artist_image_url = artist_images[0]["url"] if artist_images else None
             existing = DimArtist(
                 spotify_id=a["id"],
                 name=a["name"],
                 genres=a.get("genres") or [],
+                image_url=artist_image_url,
                 loaded_at=datetime.utcnow(),
             )
             db.add(existing)
             db.flush()
+        else:
+            artist_images = a.get("images") or []
+            artist_image_url = artist_images[0]["url"] if artist_images else None
+            if artist_image_url and existing.image_url != artist_image_url:
+                existing.image_url = artist_image_url
         artists.append(existing)
     db.commit()
     return TopArtistsResponse(items=artists, total=len(artists))

@@ -8,6 +8,7 @@ import logging
 import secrets
 from datetime import datetime
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -68,6 +69,8 @@ async def callback(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> RedirectResponse:
+    _log.info("callback called: redirect_uri=%s frontend_url=%s", settings.SPOTIFY_REDIRECT_URI, settings.FRONTEND_URL)
+
     pkce_session = db.query(PKCESession).filter(PKCESession.state == state).first()
     if pkce_session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid state")
@@ -77,15 +80,29 @@ async def callback(
     db.flush()
 
     client = SpotifyClient(access_token="")
-    tokens = await client.exchange_code(
-        settings.SPOTIFY_CLIENT_ID,
-        code,
-        settings.SPOTIFY_REDIRECT_URI,
-        verifier,
-    )
+    try:
+        tokens = await client.exchange_code(
+            settings.SPOTIFY_CLIENT_ID,
+            code,
+            settings.SPOTIFY_REDIRECT_URI,
+            verifier,
+        )
+    except httpx.HTTPStatusError as e:
+        _log.error("Spotify token exchange failed: %s", e.response.text)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Spotify token exchange failed: {e.response.text}",
+        )
 
     profile_client = SpotifyClient(access_token=tokens["access_token"])
-    profile = await profile_client.get_user_profile()
+    try:
+        profile = await profile_client.get_user_profile()
+    except httpx.HTTPStatusError as e:
+        _log.error("Spotify profile fetch failed: %s", e.response.text)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Spotify profile fetch failed: {e.response.text}",
+        )
 
     user = upsert_user(
         db,

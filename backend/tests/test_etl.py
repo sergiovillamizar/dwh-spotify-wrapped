@@ -15,7 +15,7 @@ Author:   Didier
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from app.core.database import (
     DimUser, DimArtist, DimTrack, FactListeningHistory, ETLAudit

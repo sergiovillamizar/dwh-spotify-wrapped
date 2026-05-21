@@ -46,7 +46,7 @@ async def get_recently_played(
 
 
 @router.get("/peak-hour", response_model=PeakHourResponse)
-def get_peak_hour(
+async def get_peak_hour(
     current_user: DimUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PeakHourResponse:
@@ -76,7 +76,7 @@ def get_peak_hour(
 
 
 @router.get("/genres", response_model=GenresResponse)
-def get_genres(
+async def get_genres(
     limit: int = 10,
     current_user: DimUser = Depends(get_current_user),
     db: Session = Depends(get_db),

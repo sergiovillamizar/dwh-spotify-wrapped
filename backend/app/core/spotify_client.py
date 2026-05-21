@@ -8,10 +8,13 @@ Description: Async Spotify Web API client with PKCE OAuth helpers.
 
 import base64
 import hashlib
+import logging
 import secrets
 from urllib.parse import urlencode
 
 import httpx
+
+_log = logging.getLogger(__name__)
 
 SCOPES = "user-read-private user-read-email user-top-read user-read-recently-played"
 
@@ -74,7 +77,15 @@ class SpotifyClient:
                 data=data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                _log.error(
+                    "exchange_code failed: status=%s body=%s",
+                    response.status_code,
+                    response.text,
+                )
+                raise
             return response.json()
 
     async def refresh_token(self, client_id: str, refresh_token: str) -> dict:
@@ -98,7 +109,15 @@ class SpotifyClient:
                 f"{self.BASE_URL}/me",
                 headers=self._auth_headers,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                _log.error(
+                    "get_user_profile failed: status=%s body=%s",
+                    response.status_code,
+                    response.text,
+                )
+                raise
             return response.json()
 
     async def get_top_artists(

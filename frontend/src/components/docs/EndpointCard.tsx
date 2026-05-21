@@ -28,14 +28,14 @@ export function EndpointCard({ endpoint, isActive }: EndpointCardProps) {
       >
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="w-full text-left px-5 py-4"
+          className="w-full text-left px-4 sm:px-5 py-3 sm:py-4"
         >
-          <div className="flex items-start gap-3">
-            <MethodBadge method={method} className="mt-0.5 shrink-0" />
+          <div className="flex items-start gap-2 sm:gap-3">
+            <MethodBadge method={method} className="mt-0.5 shrink-0 text-[10px] sm:text-xs" />
             <div className="flex-1 min-w-0">
-              <code className="text-sm font-mono text-white/90 break-all">{path}</code>
+              <code className="text-xs sm:text-sm font-mono text-white/90 break-all leading-relaxed">{path}</code>
               {operation.summary && (
-                <p className="text-xs text-spotify-gray mt-1 line-clamp-1">{operation.summary}</p>
+                <p className="text-[11px] sm:text-xs text-spotify-gray mt-1 line-clamp-1">{operation.summary}</p>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -53,7 +53,7 @@ export function EndpointCard({ endpoint, isActive }: EndpointCardProps) {
         </button>
 
         {showDetails && (
-          <div className="px-5 pb-5 space-y-4 animate-slide-up">
+          <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-4 animate-slide-up">
             {operation.description && operation.description !== operation.summary && (
               <div className="text-xs text-spotify-gray leading-relaxed border-l-2 border-glass-border pl-3">
                 {operation.description}
@@ -75,14 +75,14 @@ export function EndpointCard({ endpoint, isActive }: EndpointCardProps) {
                   {operation.parameters.map((param) => (
                     <div
                       key={param.name}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg bg-spotify-dark-800/50 text-xs"
+                      className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-spotify-dark-800/50 text-xs"
                     >
-                      <code className="text-white font-mono">{param.name}</code>
+                      <code className="text-white font-mono text-[11px]">{param.name}</code>
                       <span className="text-[10px] uppercase text-spotify-dark-500">{param.in}</span>
                       {param.required && (
                         <span className="text-red-400 text-[10px]">required</span>
                       )}
-                      <span className="text-spotify-gray ml-auto font-mono">
+                      <span className="text-spotify-gray ml-auto font-mono text-[10px]">
                         {param.schema.type}
                         {param.schema.format && ` <${param.schema.format}>`}
                       </span>
@@ -101,7 +101,7 @@ export function EndpointCard({ endpoint, isActive }: EndpointCardProps) {
                 <JsonViewer
                   data={operation.requestBody.content?.["application/json"]?.example ?? {}}
                   collapsed={true}
-                  maxHeight="200px"
+                  maxHeight="160px"
                 />
               </div>
             )}
@@ -114,7 +114,7 @@ export function EndpointCard({ endpoint, isActive }: EndpointCardProps) {
                 <JsonViewer
                   data={exampleResponse.content?.["application/json"]?.example ?? {}}
                   collapsed={true}
-                  maxHeight="200px"
+                  maxHeight="160px"
                 />
               </div>
             )}

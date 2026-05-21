@@ -22,16 +22,16 @@ const colSpanMap: Record<string, string> = {
 export function WidgetSlot({ title, description, children, className, colSpan }: WidgetSlotProps) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] as const }}
+      transition={{ duration: 0.45, ease: [0.21, 0.47, 0.32, 0.98] as const }}
       className={cn(
         "glass rounded-2xl overflow-hidden flex flex-col",
         colSpan ? colSpanMap[colSpan] : "",
         className,
       )}
     >
-      <div className="px-5 pt-5 pb-3 border-b border-glass-border">
+      <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-2 sm:pb-3 border-b border-glass-border">
         <h2 className="text-sm font-semibold text-white tracking-tight">
           {title}
         </h2>
@@ -39,7 +39,7 @@ export function WidgetSlot({ title, description, children, className, colSpan }:
           {description}
         </p>
       </div>
-      <div className="flex-1 p-5 pt-4">
+      <div className="flex-1 p-4 sm:p-5 pt-3 sm:pt-4">
         {children}
       </div>
     </motion.section>

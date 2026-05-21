@@ -17,6 +17,7 @@ export function DocsLayoutClient({ children }: { children: React.ReactNode }) {
             onSelectTag={() => {}}
             onSelectEndpoint={() => {}}
             isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           />
           <main className="flex-1 overflow-y-auto">
             {children}

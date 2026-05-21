@@ -19,7 +19,6 @@ export function TryItPanel({ method, path, operation, onClose }: TryItPanelProps
   const [body, setBody] = useState(() => getDefaultBody(operation));
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showCurl, setShowCurl] = useState(false);
 
   const pathParams = operation.parameters?.filter((p) => p.in === "path") ?? [];
   const queryParams = operation.parameters?.filter((p) => p.in === "query") ?? [];
@@ -62,25 +61,36 @@ export function TryItPanel({ method, path, operation, onClose }: TryItPanelProps
   const hasBody = !!operation.requestBody;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-full sm:max-w-2xl mx-0 sm:mx-4 max-h-[90vh] bg-[#0d0d0d] border border-glass-border rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl animate-slide-up">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-glass-border">
-          <div>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full sm:max-w-2xl mx-0 sm:mx-4 max-h-[90vh] bg-[#0d0d0d] border border-glass-border rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl animate-slide-up"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Try API endpoint"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-glass-border shrink-0">
+          <div className="min-w-0">
             <h2 className="text-sm font-semibold text-white">Try it</h2>
-            <p className="text-xs text-spotify-gray font-mono mt-0.5">
+            <p className="text-xs text-spotify-gray font-mono mt-0.5 truncate max-w-[200px] sm:max-w-none">
               {method.toUpperCase()} {path}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleCopyCurl}
               className="text-[11px] px-3 py-1.5 rounded-lg bg-spotify-dark-800 border border-glass-border text-spotify-gray hover:text-white transition-colors"
+              aria-label="Copy cURL command"
             >
               cURL
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-spotify-gray hover:text-white transition-colors"
+              className="p-1.5 text-spotify-gray hover:text-white transition-colors rounded-lg hover:bg-glass-hover"
+              aria-label="Close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -89,7 +99,8 @@ export function TryItPanel({ method, path, operation, onClose }: TryItPanelProps
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {(pathParams.length > 0 || queryParams.length > 0) && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold text-spotify-gray uppercase tracking-wider">Parameters</h3>
@@ -123,8 +134,8 @@ export function TryItPanel({ method, path, operation, onClose }: TryItPanelProps
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                rows={8}
-                className="w-full bg-spotify-dark-800 border border-glass-border rounded-lg px-4 py-3 text-xs font-mono text-white placeholder-spotify-dark-500 focus:outline-none focus:border-spotify-green/50 focus:ring-1 focus:ring-spotify-green/30 resize-y"
+                rows={6}
+                className="w-full bg-spotify-dark-800 border border-glass-border rounded-lg px-3 sm:px-4 py-3 text-xs font-mono text-white placeholder-spotify-dark-500 focus:outline-none focus:border-spotify-green/50 focus:ring-1 focus:ring-spotify-green/30 resize-y"
               />
             </div>
           )}
@@ -166,7 +177,7 @@ export function TryItPanel({ method, path, operation, onClose }: TryItPanelProps
                   <span className="text-spotify-dark-500">{response.duration}ms</span>
                 </div>
               </div>
-              <JsonViewer data={response.body} maxHeight="350px" />
+              <JsonViewer data={response.body} maxHeight="280px" />
             </div>
           )}
         </div>

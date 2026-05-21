@@ -11,9 +11,9 @@ interface EndpointListProps {
 export function EndpointList({ group, activeEndpointKey }: EndpointListProps) {
   return (
     <div className="space-y-3 animate-fade-in">
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-white capitalize">{group.tag}</h2>
-        <span className="text-[11px] text-spotify-dark-500 bg-spotify-dark-800 px-2 py-0.5 rounded-full border border-glass-border">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-white capitalize">{group.tag}</h2>
+        <span className="text-[10px] sm:text-[11px] text-spotify-dark-500 bg-spotify-dark-800 px-2 py-0.5 rounded-full border border-glass-border shrink-0">
           {group.endpoints.length} {group.endpoints.length === 1 ? "endpoint" : "endpoints"}
         </span>
       </div>
